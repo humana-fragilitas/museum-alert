@@ -7,7 +7,7 @@ int wiFiPin = 3;
 int alarmPin = 2;   
 float durationMicroSec, distanceincm;
 char ssid[] = "Wind3 HUB - 0290C0";
-char pass[] = "73fdxdcc5x473dyz";
+char pass[] = "";
 int status = WL_IDLE_STATUS;
 
 void setup() {
