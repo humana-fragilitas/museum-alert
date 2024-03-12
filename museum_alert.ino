@@ -5,6 +5,7 @@
 #include "UserPreferences.h"
 #include "Sensor.h"
 #include "WiFiManager.h"
+#include "BLEManager.h"
 
 enum State {
   STARTED,

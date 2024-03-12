@@ -1,11 +1,6 @@
-#include "Pins.h"
+#ifndef PIN_SETUP
+#define PIN_SETUP
 
-void pinSetup() {
+void pinSetup();
 
-  pinMode(triggerPin, OUTPUT);
-  pinMode(alarmPin, OUTPUT);
-  pinMode(wiFiPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-
-}
-
+#endif
