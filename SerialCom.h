@@ -1,9 +1,6 @@
-void initializeSerial() {
+#ifndef SERIAL_COM
+#define SERIAL_COM
 
-  Serial.begin (9600);
-  while (!Serial) {
-    ;
-  }
-  Serial.println("\nSerial port ready");
+void initializeSerial();
 
-}
+#endif

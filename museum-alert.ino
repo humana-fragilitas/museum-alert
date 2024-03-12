@@ -21,15 +21,20 @@ State appState = STARTED;
 
 void setup() {
 
+  UserPreferences userPreferences;
+  BLEManager bleManager;
+  WiFiManager wiFiManager;
+  Sensor sensor;
+
   initializeSerial();
   pinSetup();
 
-  if (getPreferences() == null) {
-    BLEManager.initializeBLE();
+  if (!userPreferences.getPreferences()) {
+    bleManager.initializeBLE();
   }
 
-  listNetworks();
-  connectToWiFi();
+  wiFiManager.listNetworks();
+  wiFiManager.connectToWiFi();
 
 }
 
@@ -45,8 +50,8 @@ void loop() {
 
   }
 
-  BLEManager.configureViaBLE();
-  initializeSensor();
+  bleManager.configureViaBLE();
+  sensor.detect();
 
 }
 
