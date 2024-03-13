@@ -1,5 +1,3 @@
-#include <ArduinoJson.h>
-
 #include "PinSetup.h"
 #include "SerialCom.h"
 #include "UserPreferences.h"
@@ -15,26 +13,26 @@ enum State {
   PREFERENCES_SET,
   BROADCAST_WIFI_NETWORKS,
   CONNECT_TO_WIFI
-}
+};
 
 State appState = STARTED;
 
-void setup() {
+UserPreferences userPreferences;
+BLEManager bleManager;
+WiFiManager wiFiManager;
+Sensor sensor;
 
-  UserPreferences userPreferences;
-  BLEManager bleManager;
-  WiFiManager wiFiManager;
-  Sensor sensor;
+void setup() {
 
   initializeSerial();
   pinSetup();
 
-  if (!userPreferences.getPreferences()) {
+  if (!userPreferences.getPreferences().second) {
     bleManager.initializeBLE();
   }
 
   wiFiManager.listNetworks();
-  wiFiManager.connectToWiFi();
+  wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
 
 }
 

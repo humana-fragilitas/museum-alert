@@ -1,3 +1,5 @@
+#include<Arduino.h>
+
 void initializeSerial() {
 
   Serial.begin (9600);

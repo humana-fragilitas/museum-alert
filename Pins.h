@@ -1,9 +1,9 @@
 #ifndef PINS
 #define PINS
 
-int triggerPin = 9;
-int echoPin = 8;
-int wiFiPin = 3;  
-int alarmPin = 2;
+extern int triggerPin;
+extern int echoPin;
+extern int wiFiPin;  
+extern int alarmPin;
 
 #endif

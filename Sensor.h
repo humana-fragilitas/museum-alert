@@ -9,6 +9,6 @@ class Sensor {
   public:
     void detect();
 
-}
+};
 
 #endif

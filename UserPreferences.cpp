@@ -1,67 +1,57 @@
+#include <utility>
+#include <Arduino.h>
+#include <Preferences.h>
+#include <ArduinoJson.h>
+
 #include "UserPreferences.h"
 
-class UserPreferences {
+std::pair<UserSettings, bool> UserPreferences::getPreferences() {
 
-  struct UserSettings {
-    String ssid;
-    String pass;
-  };
+  preferences.begin("preferences", false);
 
-  public:
-    UserSettings getPreferences() {
+  String ssid = preferences.getString("ssid");
+  String pass = preferences.getString("pass");
 
-      Preferences preferences;
-      UserSettings settings;
+  preferences.end();
 
-      preferences.begin("preferences", false);
+  if (!ssid || !pass) {
 
-      String ssid = preferences.getString("ssid");
-      String pass = preferences.getString("pass");
+    Serial.println("\nNo user preferences found on this device");
 
-      preferences.end();
+    return std::make_pair(settings, false);
+    
+  } else {
 
-      if (!ssid || !pass) {
+    Serial.println("\nUser preferences found on this device");
 
-        Serial.println("\nNo user preferences found on this device");
+    settings.ssid = ssid;
+    settings.pass = ssid;
 
-        return NULL;
-        
-      } else {
+    return std::make_pair(settings, true);
 
-        Serial.println("\nUser preferences found on this device");
+  }
 
-        settings.ssid = ssid;
-        settings.pass = ssid;
+}
 
-        return settings;
+void UserPreferences::setPreferences(String conf) {
 
-      }
+  /**
+    * sample json  "{\"ssid\":\"Wind3 HUB - 0290C0\",\"pass\":\"73fdxdcc5x473dyz\"}"
+    */
 
-    }
+  StaticJsonDocument<192> doc;
+  DeserializationError err = deserializeJson(doc, conf);
 
-    void setPreferences(String conf) {
+  if (err) {
+    Serial.print(F("\nDeserializeJson() failed with code "));
+    Serial.println(err.f_str());
+  }
 
-      /**
-       * sample json  "{\"ssid\":\"Wind3 HUB - 0290C0\",\"pass\":\"73fdxdcc5x473dyz\"}"
-       */
+  Serial.printf("\nConfiguration: %s", conf);
 
-      StaticJsonDocument<192> doc;
-      DeserializationError err = deserializeJson(doc, conf);
-
-      if (err) {
-        Serial.print(F("\nDeserializeJson() failed with code "));
-        Serial.println(err.f_str());
-      }
-
-      Serial.printf("\nConfiguration: %s", conf);
-
-      Serial.printf("\nSerialized 'ssid' property: %s", doc["ssid"].as<String>());
-      Serial.printf("\nSerialized 'pass' property: %s", doc["pass"].as<String>());
-
-      //Serial.printf("\nConfiguration: %c", conf);
-      
-    }
-
+  Serial.printf("\nSerialized 'ssid' property: %s", doc["ssid"].as<String>());
+  Serial.printf("\nSerialized 'pass' property: %s", doc["pass"].as<String>());
+  
 }
 
 

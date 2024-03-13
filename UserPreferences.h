@@ -1,18 +1,25 @@
+#include<Arduino.h>
+#include <Preferences.h>
+
 #ifndef USER_PREFERENCES
 #define USER_PREFERENCES
+
+struct UserSettings {
+  String ssid;
+  String pass;
+};
 
 class UserPreferences {
 
   private:
-    struct UserSettings {
-      String ssid;
-      String pass;
-    };
+    Preferences preferences;
+    UserSettings settings;
+
   public:
-    UserSettings getPreferences();
+    std::pair<UserSettings, bool> getPreferences();
     void setPreferences(String conf);
 
-}
+};
 
 #endif
 
