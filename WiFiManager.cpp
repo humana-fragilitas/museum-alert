@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ArduinoJson.h>
+
 
 #include "Pins.h"
 #include "WiFiManager.h"
 
-void WiFiManager::listNetworks() {
+void WiFiManager::listNetworks(JsonDocument* doc) {
 
   byte numSsid;
 
@@ -21,12 +23,16 @@ void WiFiManager::listNetworks() {
 
   // print the network number and name for each network found:
 
-  for (int thisNet = 0; thisNet<numSsid; thisNet++) {
+  for (int i = 0; i < numSsid; ++i) {
 
     Serial.printf("\n%d) %s | signal: %d dbm | encryption: %d",
-      thisNet, WiFi.SSID(thisNet), WiFi.RSSI(thisNet), WiFi.encryptionType(thisNet));
+      i, WiFi.SSID(i), WiFi.RSSI(i), WiFi.encryptionType(i));
 
-    Serial.println(WiFi.SSID(thisNet));
+    Serial.println(WiFi.SSID(i));
+
+    doc[i]["ssid"] = WiFi.SSID(i);
+    doc[i]["rssi"] = WiFi.RSSI(i);
+    doc[i]["encryptionType"] = WiFi.encryptionType(i);
 
   }
 

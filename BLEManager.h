@@ -7,12 +7,15 @@ class BLEManager {
 
   private:
     static const char* deviceServiceUuid;
-    static const char* deviceServiceCharacteristicUuid;
+    static const char* deviceServiceConfigurationCharacteristicUuid;
+    static const char* deviceServiceSsidsCharacteristicUuid;
     static BLEService configurationService; 
     static BLEStringCharacteristic configurationCharacteristic;
+    static BLEStringCharacteristic wiFiSsidsCharacteristic;
 
   public:
-    void initializeBLE();
+    void initializeBLEConfigurationService();
+    void broadCastWiFiSsids(char json[]);
     void configureViaBLE();
 
 };

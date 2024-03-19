@@ -6,45 +6,59 @@
 #include "BLEManager.h"
 
 enum State {
-  STARTED,
-  SERIAL_READY,
-  PINS_SETUP,
-  NO_PREFERENCES_SET,
-  PREFERENCES_SET,
+  START,
+  INITIALIZE_SERIAL,
   BROADCAST_WIFI_NETWORKS,
-  CONNECT_TO_WIFI
+  SET_PREFERENCES,
+  CONNECT_TO_WIFI,
+  SET_SSL_CERTIFICATE,
+  CONNECT_TO_MQTT_BROKER
 };
 
-State appState = STARTED;
-
+bool debug = true;
+std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
 BLEManager bleManager;
 WiFiManager wiFiManager;
 Sensor sensor;
 
-void setup() {
+State appState = START;
 
-  initializeSerial();
+void setup() {
+  
   pinSetup();
 
-  if (!userPreferences.getPreferences().second) {
-    bleManager.initializeBLE();
+  if(debug) {
+    initializeSerial();
   }
 
-  wiFiManager.listNetworks();
-  wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
+  userPrefs = userPreferences.getPreferences();
+  
+  if (!userPrefs.second) {
+    bleManager.initializeBLEConfigurationService();
+    appState = BROADCAST_WIFI_NETWORKS;
+  } else {
+    appState = CONNECT_TO_WIFI;
+  }
+
+  //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
 
 }
 
 void loop() {
 
   switch(appState) {
-    case NO_PREFERENCES_SET:
 
-    break;
-    case PREFERENCES_SET:
-
-    break;
+    case START:
+      pinSetup();
+    case BROADCAST_WIFI_NETWORKS:
+      JsonDocument doc;
+      char json[4096];
+      wiFiManager.listNetworks(&doc);
+      serializeJson(doc, json);
+      bleManager.broadCastWiFiSsids(json);
+      delay(1000);
+      break;
 
   }
 
