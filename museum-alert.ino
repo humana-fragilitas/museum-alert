@@ -54,6 +54,7 @@ void loop() {
       // fall through
     case BROADCAST_WIFI_NETWORKS:
       broadcastWiFiNetworksWithDelay(1000);
+      bleManager.configureViaBLE();
       break;
     case CONNECT_TO_WIFI:
       //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
@@ -62,8 +63,8 @@ void loop() {
 
   }
 
-  bleManager.configureViaBLE();
-  sensor.detect();
+  //bleManager.configureViaBLE();
+  //sensor.detect();
 
 }
 

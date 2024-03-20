@@ -61,7 +61,7 @@ void BLEManager::configureViaBLE() {
     while (central.connected()) {
       if (configurationCharacteristic.written()) {
         // setPreferences(configurationCharacteristic.value());
-        onWiFiCredentials();
+        onWiFiCredentials(configurationCharacteristic.value().c_str());
 
       }
     }
