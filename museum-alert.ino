@@ -34,14 +34,18 @@ void setup() {
     initializeSerial();
   }
 
-  userPrefs = userPreferences.getPreferences();
-  
+  //userPrefs = userPreferences.getPreferences();
+ /* 
   if (!userPrefs.second) {
     bleManager.initializeBLEConfigurationService();
     appState = BROADCAST_WIFI_NETWORKS;
   } else {
     appState = CONNECT_TO_WIFI;
-  }
+  }*/
+
+  appState = BROADCAST_WIFI_NETWORKS;
+
+  bleManager.initializeBLEConfigurationService();
 
 }
 
@@ -53,8 +57,8 @@ void loop() {
       pinSetup();
       // fall through
     case BROADCAST_WIFI_NETWORKS:
-      broadcastWiFiNetworksWithDelay(1000);
-      bleManager.configureViaBLE();
+      //broadcastWiFiNetworksWithDelay(1000);
+      //bleManager.configureViaBLE();
       break;
     case CONNECT_TO_WIFI:
       //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
@@ -87,7 +91,7 @@ void broadcastWiFiNetworksWithDelay(short milliseconds) {
  * CALLBACK FUNCTIONS                                                         *
  *****************************************************************************/
 
-void onWiFiCredentials(char credentials[]) {
+void onWiFiCredentials(String credentials) {
 
   Serial.printf("\nReceived WiFi credentials: %s", credentials);
 
@@ -102,7 +106,7 @@ void onWiFiCredentials(char credentials[]) {
 
 }
 
-void onTLSCertificate(char certificate[]) {
+void onTLSCertificate(String certificate) {
 
   Serial.printf("\nReceived TLS/SSL certificate: %s", certificate);
 

@@ -10,10 +10,10 @@ BLEService BLEManager::configurationService(deviceServiceUuid);
 BLEStringCharacteristic BLEManager::wiFiSsidsCharacteristic(deviceServiceSsidsCharacteristicUuid, BLERead, 4096);
 BLEStringCharacteristic BLEManager::configurationCharacteristic(deviceServiceConfigurationCharacteristicUuid, BLERead | BLEWrite, 512);
 
-BLEManager::BLEManager(void (*onWiFiCredentials)(char[]), void (*onTLSCertificate)(char[])) {
+BLEManager::BLEManager(void(*onWiFiCredentials)(String), void(*onTLSCertificate)(String)) {
 
-  onWiFiCredentials = onWiFiCredentials;
-  onTLSCertificate = onTLSCertificate;
+  _onWiFiCredentials = onWiFiCredentials;
+  _onTLSCertificate = onTLSCertificate;
 
 }
 
@@ -61,7 +61,7 @@ void BLEManager::configureViaBLE() {
     while (central.connected()) {
       if (configurationCharacteristic.written()) {
         // setPreferences(configurationCharacteristic.value());
-        onWiFiCredentials(configurationCharacteristic.value().c_str());
+        _onWiFiCredentials(configurationCharacteristic.value());
 
       }
     }
@@ -71,7 +71,7 @@ void BLEManager::configureViaBLE() {
 
 }
 
-void BLEManager::broadCastWiFiSsids(char json[]) {
+void BLEManager::broadCastWiFiSsids(String json) {
 
   BLEDevice central = BLE.central();
   Serial.println("\nDiscovering central device...");
@@ -85,6 +85,11 @@ void BLEManager::broadCastWiFiSsids(char json[]) {
 
     while (central.connected()) {
       wiFiSsidsCharacteristic.writeValue(json);
+      if (configurationCharacteristic.written()) {
+        // setPreferences(configurationCharacteristic.value());
+        _onWiFiCredentials(configurationCharacteristic.value());
+
+      }
     }
     
     Serial.println("\nDisconnected to central device!");

@@ -14,13 +14,13 @@ class BLEManager {
     static BLEService configurationService;
     static BLEStringCharacteristic wiFiSsidsCharacteristic;
     static BLEStringCharacteristic configurationCharacteristic;
-    std::function<char(void)> onWiFiCredentials;
-    std::function<char(void)> onTLSCertificate;
+    void(*_onWiFiCredentials)(String);
+    void(*_onTLSCertificate)(String);
 
   public:
-    BLEManager(void (*onWiFiCredentials)(char[]), void (*onTLSCertificate)(char[]));
+    BLEManager( void(*_onWiFiCredentials)(String), void(*_onTLSCertificate)(String));
     void initializeBLEConfigurationService();
-    void broadCastWiFiSsids(char json[]);
+    void broadCastWiFiSsids(String json);
     void configureViaBLE();
 
 };
