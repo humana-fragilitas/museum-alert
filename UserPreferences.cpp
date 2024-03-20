@@ -7,6 +7,8 @@
 
 std::pair<UserSettings, bool> UserPreferences::getPreferences() {
 
+  bool hasPreferences;
+
   preferences.begin("preferences", false);
 
   String ssid = preferences.getString("ssid");
@@ -18,18 +20,22 @@ std::pair<UserSettings, bool> UserPreferences::getPreferences() {
 
     Serial.println("\nNo user preferences found on this device");
 
+    hasPreferences = false;
+
     return std::make_pair(settings, false);
     
   } else {
+
+    hasPreferences = true;
 
     Serial.println("\nUser preferences found on this device");
 
     settings.ssid = ssid;
     settings.pass = ssid;
 
-    return std::make_pair(settings, true);
-
   }
+
+  return std::make_pair(settings, true);
 
 }
 

@@ -18,7 +18,7 @@ enum State {
 bool debug = true;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
-BLEManager bleManager;
+BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager;
 Sensor sensor;
 
@@ -41,8 +41,6 @@ void setup() {
     appState = CONNECT_TO_WIFI;
   }
 
-  //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
-
 }
 
 void loop() {
@@ -51,13 +49,12 @@ void loop() {
 
     case START:
       pinSetup();
+      // fall through
     case BROADCAST_WIFI_NETWORKS:
-      JsonDocument doc;
-      char json[4096];
-      wiFiManager.listNetworks(&doc);
-      serializeJson(doc, json);
-      bleManager.broadCastWiFiSsids(json);
-      delay(1000);
+      broadcastWiFiNetworksWithDelay(1000);
+      break;
+    case CONNECT_TO_WIFI:
+      wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
       break;
 
   }
@@ -66,5 +63,53 @@ void loop() {
   sensor.detect();
 
 }
+
+/******************************************************************************
+ * LOOP FUNCTIONS                                                             *
+ *****************************************************************************/
+
+void broadcastWiFiNetworksWithDelay(short milliseconds) {
+
+      JsonDocument doc;
+      char json[4096];
+      wiFiManager.listNetworks(&doc);
+      serializeJson(doc, json);
+      bleManager.broadCastWiFiSsids(json);
+      delay(milliseconds);
+
+}
+
+/******************************************************************************
+ * CALLBACK FUNCTIONS                                                         *
+ *****************************************************************************/
+
+void onWiFiCredentials(std::pair<UserSettings, bool> credentials) {
+
+  Serial.printf("\nReceived WiFi credentials; ssid: %s password: %s", credentials.first.ssid, credentials.first.pass);
+
+  //userPrefs = credentials.first;
+
+  appState = CONNECT_TO_WIFI;
+
+}
+
+void onTLSCertificate(char certificate[]) {
+
+  Serial.printf("\nReceived TLS/SSL certificate: %s", certificate);
+
+}
+
+void onWiFiConnectionSuccess(void) {
+
+
+
+}
+
+void onWiFiConnectionError(void) {
+
+
+
+}
+
 
 

@@ -6,8 +6,15 @@ const char* BLEManager::deviceServiceUuid = "19b10000-e8f2-537e-4f6c-d104768a121
 const char* BLEManager::deviceServiceConfigurationCharacteristicUuid = "19b10001-e8f2-537e-4f6c-d104768a1214";
 const char* BLEManager::deviceServiceSsidsCharacteristicUuid = "19b10001-e8f2-537e-4f6c-d104768a1213";
 BLEService BLEManager::configurationService(deviceServiceUuid);
-BLEStringCharacteristic BLEManager::configurationCharacteristic(deviceServiceConfigurationCharacteristicUuid, BLERead | BLEWrite, 512);
 BLEStringCharacteristic BLEManager::wiFiSsidsCharacteristic(deviceServiceSsidsCharacteristicUuid, BLERead, 4096);
+BLEStringCharacteristic BLEManager::configurationCharacteristic(deviceServiceConfigurationCharacteristicUuid, BLERead | BLEWrite, 512);
+
+BLEManager::BLEManager(void (*onWiFiCredentials)(std::pair<UserSettings, bool>), void (*onTLSCertificate)(char[])) {
+
+  onWiFiCredentials = onWiFiCredentials;
+  onTLSCertificate = onTLSCertificate;
+
+}
 
 void BLEManager::initializeBLEConfigurationService() {
 
