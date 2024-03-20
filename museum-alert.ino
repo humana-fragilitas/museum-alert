@@ -16,6 +16,8 @@ enum State {
 };
 
 bool debug = true;
+String ssid;
+String pass;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
 BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
@@ -54,7 +56,8 @@ void loop() {
       broadcastWiFiNetworksWithDelay(1000);
       break;
     case CONNECT_TO_WIFI:
-      wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
+      //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
+      wiFiManager.connectToWiFi(ssid, pass);
       break;
 
   }
@@ -83,11 +86,16 @@ void broadcastWiFiNetworksWithDelay(short milliseconds) {
  * CALLBACK FUNCTIONS                                                         *
  *****************************************************************************/
 
-void onWiFiCredentials(std::pair<UserSettings, bool> credentials) {
+void onWiFiCredentials(char credentials[]) {
 
-  Serial.printf("\nReceived WiFi credentials; ssid: %s password: %s", credentials.first.ssid, credentials.first.pass);
+  Serial.printf("\nReceived WiFi credentials: %s", credentials);
 
-  //userPrefs = credentials.first;
+  JsonDocument doc;
+
+  deserializeJson(doc, credentials);
+
+  ssid = doc["ssid"].as<String>();
+  pass = doc["pass"].as<String>();
 
   appState = CONNECT_TO_WIFI;
 

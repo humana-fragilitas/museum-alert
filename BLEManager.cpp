@@ -1,4 +1,5 @@
 #include <ArduinoBLE.h>
+#include <ArduinoJson.h>
 
 #include "BLEManager.h"
 
@@ -9,7 +10,7 @@ BLEService BLEManager::configurationService(deviceServiceUuid);
 BLEStringCharacteristic BLEManager::wiFiSsidsCharacteristic(deviceServiceSsidsCharacteristicUuid, BLERead, 4096);
 BLEStringCharacteristic BLEManager::configurationCharacteristic(deviceServiceConfigurationCharacteristicUuid, BLERead | BLEWrite, 512);
 
-BLEManager::BLEManager(void (*onWiFiCredentials)(std::pair<UserSettings, bool>), void (*onTLSCertificate)(char[])) {
+BLEManager::BLEManager(void (*onWiFiCredentials)(char[]), void (*onTLSCertificate)(char[])) {
 
   onWiFiCredentials = onWiFiCredentials;
   onTLSCertificate = onTLSCertificate;
@@ -50,6 +51,9 @@ void BLEManager::configureViaBLE() {
   delay(500);
 
   if (central) {
+
+    char deserializedJson[4096];
+
     Serial.println("\nConnected to central device!");
     Serial.println("\nDevice MAC address: ");
     Serial.println(central.address());
@@ -57,6 +61,8 @@ void BLEManager::configureViaBLE() {
     while (central.connected()) {
       if (configurationCharacteristic.written()) {
         // setPreferences(configurationCharacteristic.value());
+        onWiFiCredentials();
+
       }
     }
     
