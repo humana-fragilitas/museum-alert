@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
-
 #include "Pins.h"
 #include "WiFiManager.h"
 
@@ -12,10 +11,10 @@ void WiFiManager::listNetworks(JsonDocument* doc) {
 
   Serial.println("\nScanning WiFi networks");
 
-    while(!(numSsid = WiFi.scanNetworks())){
-        Serial.print(".");
-        delay(100);
-    }
+  while(!(numSsid = WiFi.scanNetworks())){
+      //Serial.print(".");
+      //delay(100);
+  }
 
   // print the list of networks seen:
 
@@ -50,8 +49,8 @@ void WiFiManager::connectToWiFi(String ssid, String pass) {
 
     // https://www.arduino.cc/reference/en/libraries/wifi/wifi.status/
     while(WiFi.status() != WL_CONNECTED){
-      Serial.print(".");
-      delay(100);
+      //Serial.print(".");
+      //delay(100);
     }
 
     digitalWrite(wiFiPin, HIGH);

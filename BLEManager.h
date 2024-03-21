@@ -20,7 +20,7 @@ class BLEManager {
   public:
     BLEManager( void(*_onWiFiCredentials)(String), void(*_onTLSCertificate)(String));
     void initializeBLEConfigurationService();
-    void broadCastWiFiSsids(String json);
+    void configureWiFi(String json);
     void configureViaBLE();
 
 };

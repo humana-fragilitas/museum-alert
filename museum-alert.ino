@@ -6,9 +6,8 @@
 #include "BLEManager.h"
 
 enum State {
-  START,
   INITIALIZE_SERIAL,
-  BROADCAST_WIFI_NETWORKS,
+  CONFIGURE_WIFI,
   SET_PREFERENCES,
   CONNECT_TO_WIFI,
   SET_SSL_CERTIFICATE,
@@ -16,6 +15,7 @@ enum State {
 };
 
 bool debug = true;
+State appState;
 String ssid;
 String pass;
 std::pair<UserSettings, bool> userPrefs;
@@ -24,7 +24,8 @@ BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager;
 Sensor sensor;
 
-State appState = START;
+const long configureWiFiInterval = 1000;
+unsigned long previousWiFiIntervalMillis = 0;
 
 void setup() {
   
@@ -43,22 +44,23 @@ void setup() {
     appState = CONNECT_TO_WIFI;
   }*/
 
-  appState = BROADCAST_WIFI_NETWORKS;
-
   bleManager.initializeBLEConfigurationService();
+
+  appState = CONFIGURE_WIFI;
 
 }
 
 void loop() {
 
+  unsigned long currentMillis = millis();
+
   switch(appState) {
 
-    case START:
-      pinSetup();
-      // fall through
-    case BROADCAST_WIFI_NETWORKS:
-      //broadcastWiFiNetworksWithDelay(1000);
-      //bleManager.configureViaBLE();
+    case CONFIGURE_WIFI:
+      if (currentMillis - previousWiFiIntervalMillis >= configureWiFiInterval) {
+        configureWiFi();
+        previousWiFiIntervalMillis = currentMillis;
+      }
       break;
     case CONNECT_TO_WIFI:
       //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
@@ -76,14 +78,13 @@ void loop() {
  * LOOP FUNCTIONS                                                             *
  *****************************************************************************/
 
-void broadcastWiFiNetworksWithDelay(short milliseconds) {
+void configureWiFi() {
 
       JsonDocument doc;
       char json[4096];
       wiFiManager.listNetworks(&doc);
       serializeJson(doc, json);
-      bleManager.broadCastWiFiSsids(json);
-      delay(milliseconds);
+      bleManager.configureWiFi(json);
 
 }
 

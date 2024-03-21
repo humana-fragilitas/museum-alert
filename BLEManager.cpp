@@ -48,11 +48,8 @@ void BLEManager::configureViaBLE() {
 
   BLEDevice central = BLE.central();
   Serial.println("\nDiscovering central device...");
-  delay(500);
 
   if (central) {
-
-    char deserializedJson[4096];
 
     Serial.println("\nConnected to central device!");
     Serial.println("\nDevice MAC address: ");
@@ -60,22 +57,21 @@ void BLEManager::configureViaBLE() {
 
     while (central.connected()) {
       if (configurationCharacteristic.written()) {
-        // setPreferences(configurationCharacteristic.value());
         _onWiFiCredentials(configurationCharacteristic.value());
-
       }
     }
     
     Serial.println("\nDisconnected to central device!");
+
   }
 
 }
 
-void BLEManager::broadCastWiFiSsids(String json) {
+void BLEManager::configureWiFi(String json) {
 
   BLEDevice central = BLE.central();
   Serial.println("\nDiscovering central device...");
-  delay(500);
+  //delay(500);
 
   if (central) {
 
@@ -86,13 +82,13 @@ void BLEManager::broadCastWiFiSsids(String json) {
     while (central.connected()) {
       wiFiSsidsCharacteristic.writeValue(json);
       if (configurationCharacteristic.written()) {
-        // setPreferences(configurationCharacteristic.value());
         _onWiFiCredentials(configurationCharacteristic.value());
-
+        break;
       }
     }
     
-    Serial.println("\nDisconnected to central device!");
+    Serial.println("\nDisconnected from central device!");
+    
   }
 
 }
