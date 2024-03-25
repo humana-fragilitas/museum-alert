@@ -16,48 +16,46 @@ std::pair<UserSettings, bool> UserPreferences::getPreferences() {
 
   preferences.end();
 
-  if (!ssid || !pass) {
-
-    Serial.println("\nNo user preferences found on this device");
-
-    hasPreferences = false;
-
-    return std::make_pair(settings, false);
-    
-  } else {
-
-    hasPreferences = true;
+  if (hasPreferences = (ssid != nullptr && pass != nullptr)) {
 
     Serial.println("\nUser preferences found on this device");
 
     settings.ssid = ssid;
-    settings.pass = ssid;
+    settings.pass = pass;
+    
+  } else {
+
+    Serial.println("\nNo user preferences found on this device");
 
   }
 
-  return std::make_pair(settings, true);
+  return std::make_pair(settings, hasPreferences);
 
 }
 
-void UserPreferences::setPreferences(String conf) {
-
-  /**
-    * sample json  "{\"ssid\":\"Wind3 HUB - 0290C0\",\"pass\":\"73fdxdcc5x473dyz\"}"
-    */
-
-  StaticJsonDocument<192> doc;
-  DeserializationError err = deserializeJson(doc, conf);
-
-  if (err) {
-    Serial.print(F("\nDeserializeJson() failed with code "));
-    Serial.println(err.f_str());
-  }
-
-  Serial.printf("\nConfiguration: %s", conf);
-
-  Serial.printf("\nSerialized 'ssid' property: %s", doc["ssid"].as<String>());
-  Serial.printf("\nSerialized 'pass' property: %s", doc["pass"].as<String>());
+void UserPreferences::setPreferences(UserSettings userSettings) {
   
+  preferences.begin("preferences", false);
+
+  preferences.putString("ssid", userSettings.ssid);
+  preferences.putString("pass", userSettings.pass);
+
+  preferences.end();
+
+  Serial.printf("\nUser preferences set: ssid: %s; pass: %s", userSettings.ssid.c_str(), userSettings.pass.c_str());
+
+}
+
+void UserPreferences::deletePreferences(void) {
+
+  preferences.begin("preferences", false);
+
+  preferences.clear();
+
+  Serial.println("\nUser preferences deleted");
+
+  preferences.end();
+
 }
 
 

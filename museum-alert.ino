@@ -1,3 +1,5 @@
+
+#include "Pins.h"
 #include "PinSetup.h"
 #include "SerialCom.h"
 #include "UserPreferences.h"
@@ -14,39 +16,37 @@ enum State {
   CONNECT_TO_MQTT_BROKER
 };
 
-bool debug = true;
-State appState;
 String ssid;
 String pass;
+bool debug = true;
+State appState;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
 BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
-WiFiManager wiFiManager;
+WiFiManager wiFiManager(&onWiFiConnectionSuccess, &onWiFiConnectionError);
 Sensor sensor;
 
-const long configureWiFiInterval = 1000;
+const long configureWiFiInterval = 5000;
 unsigned long previousWiFiIntervalMillis = 0;
 
+
 void setup() {
-  
+
+  if(debug) initializeSerial();
+
   pinSetup();
 
-  if(debug) {
-    initializeSerial();
-  }
+  if(!wiFiManager.connectToWiFi()) {
 
-  //userPrefs = userPreferences.getPreferences();
- /* 
-  if (!userPrefs.second) {
-    bleManager.initializeBLEConfigurationService();
-    appState = BROADCAST_WIFI_NETWORKS;
+    wiFiManager.eraseConfiguration();
+
+    appState = CONFIGURE_WIFI;
+
   } else {
-    appState = CONNECT_TO_WIFI;
-  }*/
 
-  bleManager.initializeBLEConfigurationService();
+    appState = SET_SSL_CERTIFICATE;
 
-  appState = CONFIGURE_WIFI;
+  }
 
 }
 
@@ -64,7 +64,14 @@ void loop() {
       break;
     case CONNECT_TO_WIFI:
       //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
-      wiFiManager.connectToWiFi(ssid, pass);
+      // { "ssid": "Wind3 HUB - 0290C0", "pass":"73fdxdcc5x473dyz" }
+      wiFiManager.connectToWiFi(userPrefs.first.ssid, userPrefs.first.pass);
+      break;
+    case SET_SSL_CERTIFICATE:
+      while(1) {
+        Serial.println("\nSet SSL Certificate");
+        delay(2000);
+      }
       break;
 
   }
@@ -80,11 +87,13 @@ void loop() {
 
 void configureWiFi() {
 
-      JsonDocument doc;
-      char json[4096];
-      wiFiManager.listNetworks(&doc);
-      serializeJson(doc, json);
-      bleManager.configureWiFi(json);
+  StaticJsonDocument<4096> doc;
+  JsonArray arr = doc.to<JsonArray>();
+  char json[4096];
+  wiFiManager.listNetworks(&arr);
+  serializeJson(doc, json);
+  bleManager.configureWiFi(json);
+  digitalWrite(wiFiPin, !digitalRead(wiFiPin));
 
 }
 
@@ -94,11 +103,19 @@ void configureWiFi() {
 
 void onWiFiCredentials(String credentials) {
 
-  Serial.printf("\nReceived WiFi credentials: %s", credentials);
+  UserSettings userSettings;
+
+  Serial.printf("\nReceived WiFi credentials: %s", credentials.c_str());
 
   JsonDocument doc;
 
-  deserializeJson(doc, credentials);
+  DeserializationError error = deserializeJson(doc, credentials);
+
+  if (error) {
+    Serial.println("Failed to deserialize WiFi credentials json: ");
+    Serial.println(error.c_str());
+    return;
+  }
 
   ssid = doc["ssid"].as<String>();
   pass = doc["pass"].as<String>();
@@ -115,13 +132,17 @@ void onTLSCertificate(String certificate) {
 
 void onWiFiConnectionSuccess(void) {
 
-
+  appState = SET_SSL_CERTIFICATE;
 
 }
 
 void onWiFiConnectionError(void) {
 
+  Serial.println("\nCan't connect to WiFi");
 
+  userPreferences.deletePreferences();
+
+  appState = CONFIGURE_WIFI;
 
 }
 

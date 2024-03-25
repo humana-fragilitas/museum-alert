@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <vector>
 #include <ArduinoJson.h>
+#include <WiFi.h>
 
 struct WiFiNetwork {
   String ssid;
@@ -10,8 +11,16 @@ struct WiFiNetwork {
 
 class WiFiManager {
 
+  private:
+    void(*_onWiFiConnectionSuccess)(void);
+    void(*_onWiFiConnectionError)(void);
+
   public:
-    void listNetworks(JsonDocument* doc);
+    WiFiManager(void(*onWiFiConnectionSuccess)(void), void(*onWiFiConnectionError)(void));
+    void listNetworks(JsonArray* doc);
     void connectToWiFi(String ssid, String pass);
+    wl_status_t connectToWiFi(void);
+    bool eraseConfiguration(void);
+    void disconnect(void);
 
 };
