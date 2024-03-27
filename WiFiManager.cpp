@@ -2,19 +2,18 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
-#include "Pins.h"
 #include "WiFiManager.h"
 
-WiFiManager::WiFiManager(void(*onWiFiConnectionSuccess)(void), void(*onWiFiConnectionError)(void)) {
+WiFiManager::WiFiManager(void(*onWiFiEvent)(WiFiEvent_t)) {
 
-  _onWiFiConnectionSuccess = onWiFiConnectionSuccess;
-  _onWiFiConnectionError = onWiFiConnectionError;
+  WiFi.mode(WIFI_STA);
+  WiFi.onEvent(onWiFiEvent);
 
 }
 
 void WiFiManager::listNetworks(JsonArray* doc) {
 
-    WiFi.setAutoReconnect(false);
+  WiFi.setAutoReconnect(false);
 
   byte numSsid;
 
@@ -47,41 +46,27 @@ void WiFiManager::listNetworks(JsonArray* doc) {
 
 }
 
-void WiFiManager::connectToWiFi(String ssid, String pass) {
+uint8_t WiFiManager::connectToWiFi(String ssid, String pass) {
 
-  wl_status_t status;
-
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(false, true);
-  digitalWrite(wiFiPin, LOW);
+  uint8_t status;
 
   WiFi.begin(ssid, pass);
 
-  while((status = WiFi.status()) != WL_CONNECTED) {
+  status = WiFi.waitForConnectResult();
 
-      if (status == WL_CONNECT_FAILED  ||
-          status == WL_CONNECTION_LOST ||
-          status == WL_DISCONNECTED) {
-
-        _onWiFiConnectionError();
-        return;
-        break;
-
-      }
-
-  }
-
-  digitalWrite(wiFiPin, HIGH);
-  Serial.printf("\nConnected to WiFi network: %s", ssid.c_str());
-  Serial.printf("\nLocal ESP32 IP: %s", WiFi.localIP().toString());
-
-  _onWiFiConnectionSuccess();
+  return status;
 
 }
 
-wl_status_t WiFiManager::connectToWiFi(void) {
+uint8_t WiFiManager::connectToWiFi(void) {
 
-  return WiFi.begin();
+  uint8_t status;
+
+  WiFi.begin();
+
+  status = WiFi.waitForConnectResult();
+
+  return status;
 
 }
 
@@ -94,8 +79,6 @@ bool WiFiManager::eraseConfiguration(void) {
 void WiFiManager::disconnect() {
 
   WiFi.disconnect(false, true);
-
-  digitalWrite(wiFiPin, LOW);
 
   Serial.println("\nDisconnected from WiFi network");
   

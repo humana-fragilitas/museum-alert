@@ -11,15 +11,11 @@ struct WiFiNetwork {
 
 class WiFiManager {
 
-  private:
-    void(*_onWiFiConnectionSuccess)(void);
-    void(*_onWiFiConnectionError)(void);
-
   public:
-    WiFiManager(void(*onWiFiConnectionSuccess)(void), void(*onWiFiConnectionError)(void));
+    WiFiManager(void(*onWiFiEvent)(WiFiEvent_t));
     void listNetworks(JsonArray* doc);
-    void connectToWiFi(String ssid, String pass);
-    wl_status_t connectToWiFi(void);
+    uint8_t connectToWiFi(String ssid, String pass);
+    uint8_t connectToWiFi(void);
     bool eraseConfiguration(void);
     void disconnect(void);
 
