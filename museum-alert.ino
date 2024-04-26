@@ -8,11 +8,12 @@
 #include "WiFiManager.h"
 #include "BLEManager.h"
 
-#define DEFAULT_APP_STATE CONFIGURE_WIFI
+#include <WiFi.h>
 
 enum State {
   INITIALIZE_SERIAL,
   CONFIGURE_WIFI,
+  CONNECT_TO_WIFI,
   SET_PREFERENCES,
   SET_SSL_CERTIFICATE,
   CONNECT_TO_MQTT_BROKER,
@@ -20,9 +21,11 @@ enum State {
 };
 
 // Mutex mutex;
+TaskHandle_t Task1;
 String ssid;
 String pass;
 bool debug = true;
+bool wiFiLedStatus = false;
 State appState;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
@@ -30,30 +33,67 @@ BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager(&onWiFiEvent);
 Sensor sensor;
 
-const long configureWiFiInterval = 1000;
-unsigned long previousWiFiIntervalMillis = 0;
+const unsigned long configureWiFiInterval = 2000;
+unsigned long previousWiFiInterval = 0;
 
+void Task1code(void * parameter);
+
+void Task1code(void * parameter) {
+
+  unsigned long previousLedBlinkInterval = 0;
+  const unsigned long ledBlinkInterval = 500;
+
+  unsigned long previousLedBlinkInterval2 = 0;
+  const unsigned long ledBlinkInterval2 = 250;
+
+  for(;;) {
+
+    unsigned long currentMillis = millis();
+
+    switch(appState) {
+
+      case CONNECT_TO_WIFI:
+        if (currentMillis - previousLedBlinkInterval >= ledBlinkInterval) {
+          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          previousLedBlinkInterval = currentMillis;
+        }
+        break;
+
+      break;
+      case CONFIGURE_WIFI:
+        if (currentMillis - previousLedBlinkInterval2 >= ledBlinkInterval2) {
+          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          previousLedBlinkInterval2 = currentMillis;
+        }
+        break;
+
+    }
+    
+  }
+
+}
 
 void setup() {
 
-  appState = DEFAULT_APP_STATE;
+  xTaskCreatePinnedToCore(
+    Task1code, /* Function to implement the task */
+    "Task1", /* Name of the task */
+    10000,  /* Stack size in words */
+    NULL,  /* Task input parameter */
+    0,  /* Priority of the task */
+    &Task1,  /* Task handle. */
+    0
+  ); /* Core where the task should run */
 
   if (debug) initializeSerial();
 
   pinSetup();
 
-  switch (wiFiManager.connectToWiFi()) {
+  Serial.println("\nBegin delay: 20 sec.");
+  delay(20000);
+  Serial.println("\nDelay end.");
 
-      case WL_CONNECTED:
-        appState = SET_SSL_CERTIFICATE;
-        break;
-      case WL_CONNECT_FAILED:
-        appState = CONFIGURE_WIFI;
-        break;
-      default:
-        appState = CONFIGURE_WIFI;
-
-  }
+  appState = CONNECT_TO_WIFI;
 
 }
 
@@ -63,10 +103,19 @@ void loop() {
 
   switch(appState) {
 
+    case CONNECT_TO_WIFI:
+      if (wiFiManager.connectToWiFi() == WL_CONNECTED) {
+        appState = SET_SSL_CERTIFICATE;
+      } else {
+        bleManager.initializeBLEConfigurationService();
+        appState = CONFIGURE_WIFI;
+      }
+      break;
     case CONFIGURE_WIFI:
-      if (currentMillis - previousWiFiIntervalMillis >= configureWiFiInterval) {
+      if (currentMillis - previousWiFiInterval >= configureWiFiInterval) {
         configureWiFi();
-        previousWiFiIntervalMillis = currentMillis;
+        Serial.printf("Millis: %d", currentMillis - previousWiFiInterval);
+        previousWiFiInterval = currentMillis;
       }
       break;
     case SET_SSL_CERTIFICATE:
@@ -105,7 +154,6 @@ void configureWiFi() {
   wiFiManager.listNetworks(&arr);
   serializeJson(doc, json);
   bleManager.configureWiFi(json);
-  digitalWrite(wiFiPin, !digitalRead(wiFiPin));
 
 }
 
@@ -128,6 +176,7 @@ void onWiFiEvent(WiFiEvent_t event) {
         break;
     case ARDUINO_EVENT_WIFI_STA_STOP:
         Serial.printf("\nWiFi clients stopped");
+        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         Serial.printf("\nConnected to access point");
@@ -137,9 +186,11 @@ void onWiFiEvent(WiFiEvent_t event) {
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         Serial.printf("\nDisconnected from WiFi access point");
         digitalWrite(wiFiPin, LOW);
+        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         Serial.printf("\nAuthentication mode of access point has changed");
+        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
         Serial.printf("\nObtained IP address: ");
@@ -147,6 +198,7 @@ void onWiFiEvent(WiFiEvent_t event) {
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         Serial.println("\nLost IP address and IP address is reset to 0");
+        appState = CONNECT_TO_WIFI;
         break;
 
   }
@@ -175,6 +227,7 @@ void onWiFiCredentials(String credentials) {
   //mutex.lock();
   //wiFiManager.connectToWiFi("Wind3 HUB - 0290C0", "73fdxdcc5x473dyz");
   // { "ssid": "Wind3 HUB - 0290C0", "pass":"73fdxdcc5x473dyz" }
+  // { "ssid": "Pixel_9824", "pass":"qyqijczyz2p37xz" }
   if (wiFiManager.connectToWiFi(ssid, pass) == WL_CONNECTED) {
 
       Serial.printf("\nConnected to WiFi network: %s", ssid.c_str());

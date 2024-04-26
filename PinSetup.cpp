@@ -9,5 +9,10 @@ void pinSetup() {
   pinMode(wiFiPin, OUTPUT);
   pinMode(echoPin, INPUT);
 
+  digitalWrite(triggerPin, LOW);
+  digitalWrite(alarmPin, LOW);
+  digitalWrite(wiFiPin, LOW);
+  digitalWrite(echoPin, LOW);
+
 }
 

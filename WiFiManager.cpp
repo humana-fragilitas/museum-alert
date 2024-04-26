@@ -6,23 +6,23 @@
 
 WiFiManager::WiFiManager(void(*onWiFiEvent)(WiFiEvent_t)) {
 
-  WiFi.mode(WIFI_STA);
   WiFi.onEvent(onWiFiEvent);
 
 }
 
 void WiFiManager::listNetworks(JsonArray* doc) {
 
-  WiFi.setAutoReconnect(false);
+  //WiFi.setAutoReconnect(false);
 
   byte numSsid;
 
   Serial.println("\nScanning WiFi networks");
 
-  while(!(numSsid = WiFi.scanNetworks())){
-      //Serial.print(".");
-      //delay(100);
-  }
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  while(!(numSsid = WiFi.scanNetworks())) continue;
 
   // print the list of networks seen:
 
@@ -33,9 +33,7 @@ void WiFiManager::listNetworks(JsonArray* doc) {
   for (int i = 0; i < numSsid; ++i) {
 
     Serial.printf("\n%u) %s | signal: %d dbm | encryption: %d ",
-      i, WiFi.SSID(i), WiFi.RSSI(i), WiFi.encryptionType(i));
-
-    Serial.println(WiFi.SSID(i));
+      i, WiFi.SSID(i).c_str(), WiFi.RSSI(i), WiFi.encryptionType(i));
 
     JsonObject wiFiEntry = doc->createNestedObject();
     wiFiEntry["ssid"] = WiFi.SSID(i);
@@ -44,12 +42,15 @@ void WiFiManager::listNetworks(JsonArray* doc) {
 
   }
 
+  WiFi.scanDelete();
+
 }
 
 uint8_t WiFiManager::connectToWiFi(String ssid, String pass) {
 
   uint8_t status;
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
 
   status = WiFi.waitForConnectResult();
@@ -76,9 +77,9 @@ bool WiFiManager::eraseConfiguration(void) {
 
 }
 
-void WiFiManager::disconnect() {
+void WiFiManager::disconnect(bool wiFiOff, bool eraseAp) {
 
-  WiFi.disconnect(false, true);
+  WiFi.disconnect(wiFiOff, eraseAp);
 
   Serial.println("\nDisconnected from WiFi network");
   
