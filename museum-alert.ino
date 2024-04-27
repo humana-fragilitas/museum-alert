@@ -7,6 +7,7 @@
 #include "Sensor.h"
 #include "WiFiManager.h"
 #include "BLEManager.h"
+#include "esp_wifi.h"
 
 #include <WiFi.h>
 
@@ -21,7 +22,7 @@ enum State {
 };
 
 // Mutex mutex;
-TaskHandle_t Task1;
+TaskHandle_t ledIndicatorsTask;
 String ssid;
 String pass;
 bool debug = true;
@@ -33,57 +34,10 @@ BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager(&onWiFiEvent);
 Sensor sensor;
 
-const unsigned long configureWiFiInterval = 2000;
-unsigned long previousWiFiInterval = 0;
-
-void Task1code(void * parameter);
-
-void Task1code(void * parameter) {
-
-  unsigned long previousLedBlinkInterval = 0;
-  const unsigned long ledBlinkInterval = 500;
-
-  unsigned long previousLedBlinkInterval2 = 0;
-  const unsigned long ledBlinkInterval2 = 250;
-
-  for(;;) {
-
-    unsigned long currentMillis = millis();
-
-    switch(appState) {
-
-      case CONNECT_TO_WIFI:
-        if (currentMillis - previousLedBlinkInterval >= ledBlinkInterval) {
-          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
-          previousLedBlinkInterval = currentMillis;
-        }
-        break;
-
-      break;
-      case CONFIGURE_WIFI:
-        if (currentMillis - previousLedBlinkInterval2 >= ledBlinkInterval2) {
-          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
-          previousLedBlinkInterval2 = currentMillis;
-        }
-        break;
-
-    }
-    
-  }
-
-}
+unsigned const int configureWiFiInterval = 4000;
+unsigned int previousWiFiInterval = 0;
 
 void setup() {
-
-  xTaskCreatePinnedToCore(
-    Task1code, /* Function to implement the task */
-    "Task1", /* Name of the task */
-    10000,  /* Stack size in words */
-    NULL,  /* Task input parameter */
-    0,  /* Priority of the task */
-    &Task1,  /* Task handle. */
-    0
-  ); /* Core where the task should run */
 
   if (debug) initializeSerial();
 
@@ -93,11 +47,32 @@ void setup() {
   delay(20000);
   Serial.println("\nDelay end.");
 
+  xTaskCreatePinnedToCore(
+    ledIndicators,
+    "LedIndicators",
+    1024,
+    NULL,
+    0,
+    &ledIndicatorsTask,
+    0
+  );
+
+  WiFi.eraseAP();
+  esp_wifi_start();
+
   appState = CONNECT_TO_WIFI;
+
+  //BaseType_t coreID = xPortGetCoreID();
+  //Serial.print("setup() is running on core ");
+  //Serial.println(coreID);
 
 }
 
 void loop() {
+
+  //BaseType_t coreID = xPortGetCoreID();
+  //Serial.print("loop() is running on core ");
+  //Serial.println(coreID);
 
   unsigned long currentMillis = millis();
 
@@ -243,5 +218,42 @@ void onTLSCertificate(String certificate) {
 
 }
 
+/******************************************************************************
+ * MULTITHREADING FUNCTIONS                                                   *
+ *****************************************************************************/
 
+void ledIndicators(void *parameter) {
+
+  unsigned long previousLedBlinkInterval = 0;
+  const unsigned long ledBlinkInterval = 500;
+
+  unsigned long previousLedBlinkInterval2 = 0;
+  const unsigned long ledBlinkInterval2 = 250;
+
+  for(;;) {
+
+    unsigned long currentMillis = millis();
+
+    switch(appState) {
+
+      case CONNECT_TO_WIFI:
+        if (currentMillis - previousLedBlinkInterval >= ledBlinkInterval) {
+          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          previousLedBlinkInterval = currentMillis;
+        }
+        break;
+
+      break;
+      case CONFIGURE_WIFI:
+        if (currentMillis - previousLedBlinkInterval2 >= ledBlinkInterval2) {
+          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          previousLedBlinkInterval2 = currentMillis;
+        }
+        break;
+
+    }
+    
+  }
+
+}
 
