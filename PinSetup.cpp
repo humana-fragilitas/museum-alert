@@ -8,6 +8,7 @@ void pinSetup() {
   pinMode(alarmPin, OUTPUT);
   pinMode(wiFiPin, OUTPUT);
   pinMode(echoPin, INPUT);
+  pinMode(resetButtonPin, INPUT);
 
   digitalWrite(triggerPin, LOW);
   digitalWrite(alarmPin, LOW);

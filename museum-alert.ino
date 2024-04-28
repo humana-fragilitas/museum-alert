@@ -7,7 +7,6 @@
 #include "Sensor.h"
 #include "WiFiManager.h"
 #include "BLEManager.h"
-#include "esp_wifi.h"
 
 #include <WiFi.h>
 
@@ -37,6 +36,9 @@ Sensor sensor;
 unsigned const int configureWiFiInterval = 4000;
 unsigned int previousWiFiInterval = 0;
 
+unsigned const int resetButtonInterval = 4000;
+unsigned int previousResetButtonInterval = 0;
+
 void setup() {
 
   if (debug) initializeSerial();
@@ -47,6 +49,8 @@ void setup() {
   delay(20000);
   Serial.println("\nDelay end.");
 
+  attachInterrupt(digitalPinToInterrupt(resetButtonPin), onResetButtonISR, CHANGE);
+
   xTaskCreatePinnedToCore(
     ledIndicators,
     "LedIndicators",
@@ -56,9 +60,6 @@ void setup() {
     &ledIndicatorsTask,
     0
   );
-
-  WiFi.eraseAP();
-  esp_wifi_start();
 
   appState = CONNECT_TO_WIFI;
 
@@ -155,12 +156,10 @@ void onWiFiEvent(WiFiEvent_t event) {
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         Serial.printf("\nConnected to access point");
-        digitalWrite(wiFiPin, HIGH);
         appState = SET_SSL_CERTIFICATE;
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         Serial.printf("\nDisconnected from WiFi access point");
-        digitalWrite(wiFiPin, LOW);
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
@@ -218,6 +217,33 @@ void onTLSCertificate(String certificate) {
 
 }
 
+void onResetButtonISR(void) {
+
+  unsigned long currentMillis = millis();
+
+  if (digitalRead(resetButtonPin)) {
+
+    previousResetButtonInterval = currentMillis;
+
+  } else {
+
+    if (currentMillis - previousResetButtonInterval >= resetButtonInterval) {
+
+      Serial.println("Erasing AP settings and rebooting...");
+      WiFi.eraseAP();
+      //esp_wifi_start();
+      // Note: first restart after serial flashing causes puts the board in boot mode:(1,7) (purple led)
+      // https://github.com/esp8266/Arduino/issues/1722
+      // https://github.com/esp8266/Arduino/issues/1017
+      // https://github.com/esp8266/Arduino/issues/1722#issuecomment-321818357
+      ESP.restart();
+
+    }
+
+  }
+
+}
+
 /******************************************************************************
  * MULTITHREADING FUNCTIONS                                                   *
  *****************************************************************************/
@@ -242,8 +268,6 @@ void ledIndicators(void *parameter) {
           previousLedBlinkInterval = currentMillis;
         }
         break;
-
-      break;
       case CONFIGURE_WIFI:
         if (currentMillis - previousLedBlinkInterval2 >= ledBlinkInterval2) {
           digitalWrite(wiFiPin, !digitalRead(wiFiPin));

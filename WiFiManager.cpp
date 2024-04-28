@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <esp_wifi.h>
 
 #include "WiFiManager.h"
 
@@ -72,6 +73,10 @@ uint8_t WiFiManager::connectToWiFi(void) {
 }
 
 bool WiFiManager::eraseConfiguration(void) {
+
+  int status = WiFi.eraseAP();
+  
+  esp_wifi_start();
 
   return WiFi.eraseAP();
 
