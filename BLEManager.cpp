@@ -31,6 +31,7 @@ void BLEManager::initializeBLEConfigurationService() {
   Serial.println("\nBluetooth® Low Energy module initialized");
 
   snprintf(sensorName, 33, "MAS-%04X%08X", chip, (uint32_t)chipid);
+  BLE.setDeviceName(sensorName);
   BLE.setLocalName(sensorName); 
   BLE.setAdvertisedService(configurationService);
   configurationService.addCharacteristic(configurationCharacteristic);
