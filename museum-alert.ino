@@ -9,15 +9,6 @@
 #include "BLEManager.h"
 #include "MQTTClient.h"
 
-#include <WiFi.h>
-#include <esp_wifi.h>
-#include <esp_task_wdt.h>
-#include <esp_log.h>
-#include <esp_system.h>
-#include <esp_event.h>
-#include <mqtt_client.h>
-#include <esp_tls.h>
-
 enum State {
   INITIALIZE_SERIAL,
   CONFIGURE_WIFI,
@@ -32,7 +23,6 @@ enum State {
 TaskHandle_t ledIndicatorsTask;
 String ssid;
 String pass;
-bool debug = true;
 bool wiFiLedStatus = false;
 State appState;
 std::pair<UserSettings, bool> userPrefs;
@@ -48,95 +38,20 @@ unsigned int previousWiFiInterval = 0;
 unsigned const int resetButtonInterval = 4000;
 unsigned int previousResetButtonInterval = 0;
 
-esp_err_t err;
 int brokerSetUp = 0;
-
-const unsigned char DSTroot_CA[] = R"CERT(-----BEGIN CERTIFICATE-----
-MIIDSzCCAjOgAwIBAgIBATANBgkqhkiG9w0BAQUFADBpMRQwEgYDVQQDEwtleGFt
-cGxlLm9yZzELMAkGA1UEBhMCVVMxETAPBgNVBAgTCFZpcmdpbmlhMRMwEQYDVQQH
-EwpCbGFja3NidXJnMQ0wCwYDVQQKEwRUZXN0MQ0wCwYDVQQLEwRUZXN0MB4XDTI0
-MDUwNTE2Mjc1MFoXDTI1MDUwNTE2Mjc1MFowaTEUMBIGA1UEAxMLZXhhbXBsZS5v
-cmcxCzAJBgNVBAYTAlVTMREwDwYDVQQIEwhWaXJnaW5pYTETMBEGA1UEBxMKQmxh
-Y2tzYnVyZzENMAsGA1UEChMEVGVzdDENMAsGA1UECxMEVGVzdDCCASIwDQYJKoZI
-hvcNAQEBBQADggEPADCCAQoCggEBAN3Rjx5EMPKbJ3fadAiTTsu4c7m0yTQK9Qqi
-sNBfmnJVgV+eIaMlFehIYb25E5ltoYoJDRqFFfHYNukY2Vp0uAd6qph+yKthpEfw
-lpvPegIc8G/kWnO+qo/2k4NOvyr2/piN1f8XfRhG+DsMl2hc9l9NVGLakVxliYtV
-czWltYchpHdFlD6tiNbuAalSEDyOVo5lDLSPd2Kbz6GA+j5MvFNd7CQQYGyXnL8G
-lhBg/2Qs5B76mWPDSQ4TypOi7mpUZhByWFX69Eil46olPV9jaIwUTposB0GQivbD
-lgzHYUOEOpA/qVLvwQaO2bu1jHUdgztNgK+lx4Cq/kqhAV5ustUCAwEAATANBgkq
-hkiG9w0BAQUFAAOCAQEAPCvvAwLR1ZF7Iz3XdtC/SyMIexUqTkeHHan+EzgbIW8m
-Q5PgjLalpiJChxFBINO4t4iPTPxKi5q0v4a69NoHK03YDWAKZ3XRlIhZ51ZuBdZf
-0Lh3YL/luvC1Z3eexBs15m4fcjnOm2xJ9ZG+ej8k0KVSZSA5GVUHdqT0S+JIpiLQ
-7MGQztOKzzCOk8siXyvT80BoAlQgjtczNMINCvW01Mq3kS/HXZIoS6Thhpz2CiKu
-CJaY5qt9ftK7UPfdHyAzUdB4E17A2CmSwt5Hk7DkxHiubrOL6rVBBZNqlQsXGhbn
-sJPRQ0RKsydyb+0HJEK4A7bSqEzMtL8lQH6obIoo6A==
------END CERTIFICATE-----
-)CERT";
-
-const unsigned char privateKey[] = R"KEY(-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA3dGPHkQw8psnd9p0CJNOy7hzubTJNAr1CqKw0F+aclWBX54h
-oyUV6EhhvbkTmW2higkNGoUV8dg26RjZWnS4B3qqmH7Iq2GkR/CWm896Ahzwb+Ra
-c76qj/aTg06/Kvb+mI3V/xd9GEb4OwyXaFz2X01UYtqRXGWJi1VzNaW1hyGkd0WU
-Pq2I1u4BqVIQPI5WjmUMtI93YpvPoYD6Pky8U13sJBBgbJecvwaWEGD/ZCzkHvqZ
-Y8NJDhPKk6LualRmEHJYVfr0SKXjqiU9X2NojBROmiwHQZCK9sOWDMdhQ4Q6kD+p
-Uu/BBo7Zu7WMdR2DO02Ar6XHgKr+SqEBXm6y1QIDAQABAoIBAHsEj3TfqK3Dsn3b
-32IqIBcHctbZFoUQVpnRZHILs2IZXaij0E/kb2PlUJ+hlucOT/p3zpaYnHUFzl4z
-88cg2Db9psLv/WZevndPTJeY1zd4yTek0y1B3uH8hA7ci1TOqp/8eWQBqNTf9yb4
-crfkZpawEk7InLk7bq6hc0WbYzNPQs+WdRyqMDy6rQU7tz5/9wXm0442V1l0qUAH
-U5qoNKOGIxOt9ODmbKRvZfu/Ti/LzoX+R6bXUvzNmASgRJvMoZmXI71ltp+dp4QO
-bBz74JV7VQglW+VuTM5ZgsjLlxAidAzR7PiDuQRUKwi6xrPBZFe81Kt5z+UEoqyu
-steyj7kCgYEA7udOB80Y6v9PrrirFeE/nOjipkA18tE3vixXyfc2mQAUqrezOtsJ
-0LYk1OBDyV+JXLQ5/n0QWe2JkpijpVMP3uPgbXs5swc0Gd3IJtfY6rppKMmZ9G2v
-4QC4bUwz8hzGpiGXLTuInE9JnYD1Fqau3vD5QmAfsRVmegg5BGI0VKMCgYEA7bFC
-YxOrJi6nkRPkb3kbU2CG99n5CkuwbY1xSZ641O8b9lBIEaTNKa2K5GzVVygcBoYe
-D0O8US9FSTigBYtHMdWii2mVzABnU++RKnPRybkvrEqS6yAZnYSSabfzvzHUjdvc
-BA3ugdC+xFDpZohSRSsIsV6mTv/+IHy3TOlB2icCgYBBQjHQc7fwyVkM0yj4yxTD
-WeI/o56Y+4mMizRX2Q2y8ZCzqYZt91NRDdA1ziT2JwCwsBJ/b849omNIBiX9jRjy
-u7Ccd2Klgrw6rJh189QvGkiLebZyTFwUzEuUn5I4+p9Q1jAjjPWeLRJg0c8hJtrx
-z0VnWjaN+tiJUSGyDtlYnQKBgQCbEquyQhHGLmgKgcTmaUfHpNFJgL821Vy8jKwd
-kN0bpwhCMexi/ncPuvZDwzGI1FU8eGHCKboB6Wo1tCjKlSyUucF7XR5q4tSG8WRv
-IvL6vcP5jwm9Nssfdm+jY202DweSqZ8oUgKKVSswn203BLdQAxx/w7WTEva0MUnR
-dtkMvwKBgQC1SGDAQmNfk5krtsULtCNM+vw3FEuQgl74t9SETuHvhLZLS/H3MTT+
-avqG/cjz3bBQZU98VMzTlLkzKm4gWegfFm5OMCkuhniW+7AgS3GTlIAfBSt4aVM7
-34xcrXLK156OJAIsqXRCXVzCFJ4RPjJyfM80fKaa2nOb5kSEYklKeQ==
------END RSA PRIVATE KEY-----
-)KEY";
 
 void setup() {
 
-  if (debug) initializeSerial();
+  initializeSerial();
 
   pinSetup();
 
-  Serial.println("\nBegin delay: 20 sec.");
-  delay(20000);
-  Serial.println("\nDelay end.");
+  forceDelay();
 
-  attachInterrupt(digitalPinToInterrupt(resetButtonPin), onResetButtonISR, CHANGE);
-
-  xTaskCreatePinnedToCore(
-    ledIndicators,
-    "LedIndicators",
-    1024,
-    NULL,
-    0,
-    &ledIndicatorsTask,
-    0
-  );
+  initializeUI();
 
   appState = (wiFiManager.connectToWiFi() != WL_CONNECTED) ?
     CONFIGURE_WIFI : SET_SSL_CERTIFICATE;
-
-WiFiClientSecure espClient;
-globalClient = new PubSubClient(espClient);
-espClient.setCertificate((char*)DSTroot_CA); // for client verification
-espClient.setPrivateKey((char*)privateKey);  // for client verification
-char* mqtt_server = "museum-alert-iot-hub.azure-devices.net";
-globalClient->setServer(mqtt_server, 8883);
-globalClient->setCallback(callback);
-if (globalClient->connect("MAS-EC357A188534", "museum-alert-iot-hub.azure-devices.net/MAS-EC357A188534/?api-version=2021-04-12", NULL)) {
-  Serial.println("MQTT Server connected!");
-}
 
   if (appState == CONFIGURE_WIFI) bleManager.initializeBLEConfigurationService();
 
@@ -199,6 +114,34 @@ void loop() {
 }
 
 /******************************************************************************
+ * SETUP FUNCTIONS                                                             *
+ *****************************************************************************/
+
+void forceDelay() {
+
+  Serial.println("Begin delay: 20 sec.");
+  delay(20000);
+  Serial.println("Delay end.");
+
+}
+
+void initializeUI() {
+
+  attachInterrupt(digitalPinToInterrupt(resetButtonPin), onResetButtonISR, CHANGE);
+
+  xTaskCreatePinnedToCore(
+    ledIndicators,
+    "LedIndicators",
+    1024,
+    NULL,
+    0,
+    &ledIndicatorsTask,
+    0
+  );
+
+}
+ 
+/******************************************************************************
  * LOOP FUNCTIONS                                                             *
  *****************************************************************************/
 
@@ -222,36 +165,36 @@ void onWiFiEvent(WiFiEvent_t event) {
   switch (event) {
 
     case ARDUINO_EVENT_WIFI_READY: 
-        Serial.printf("\nWiFi interface ready");
+        Serial.println("WiFi interface ready");
         break;
     case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        Serial.printf("\nCompleted scan for access points");
+        Serial.println("Completed scan for access points");
         break;
     case ARDUINO_EVENT_WIFI_STA_START:
-        Serial.printf("\nWiFi client started");
+        Serial.println("WiFi client started");
         break;
     case ARDUINO_EVENT_WIFI_STA_STOP:
-        Serial.printf("\nWiFi clients stopped");
+        Serial.println("WiFi clients stopped");
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-        Serial.printf("\nConnected to access point");
+        Serial.println("Connected to access point");
         appState = SET_SSL_CERTIFICATE;
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-        Serial.printf("\nDisconnected from WiFi access point");
+        Serial.println("Disconnected from WiFi access point");
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        Serial.printf("\nAuthentication mode of access point has changed");
+        Serial.println("Authentication mode of access point has changed");
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        Serial.printf("\nObtained IP address: ");
-        Serial.println(WiFi.localIP());
+        Serial.println("Obtained IP address: ");
+        Serial.print(WiFi.localIP());
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        Serial.println("\nLost IP address and IP address is reset to 0");
+        Serial.println("Lost IP address and IP address is reset to 0");
         appState = CONNECT_TO_WIFI;
         break;
 
@@ -328,33 +271,6 @@ void onResetButtonISR(void) {
 
   }
 
-}
-
-// this is event handler that we will register in mqtt_setup(). You will need at least two events: MQTT_EVENT_CONNECTED and MQTT_EVENT_DATA. more possible events see ESP-IDF example
-static void mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
-{
-
-  Serial.printf("\nEvent base: %s; id: %d; name; %s; data: %s", event_base, event_id, esp_err_to_name(event_id), event_data);
-
-}
-
-int setupMqttBroker(void) {
-
-  return 1;
-
-}
-
-void callback(char* topic, byte* message, unsigned int length) {
-  Serial.print("Message arrived on topic: ");
-  Serial.print(topic);
-  Serial.print(". Message: ");
-  String messageTemp;
-
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)message[i]);
-    messageTemp += (char)message[i];
-  }
-  Serial.println();
 }
 
 /******************************************************************************

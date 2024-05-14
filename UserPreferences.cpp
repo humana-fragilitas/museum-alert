@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <ArduinoJson.h>
+#include <nvs_flash.h>
 
 #include "UserPreferences.h"
 
@@ -51,10 +52,16 @@ void UserPreferences::deletePreferences(void) {
   preferences.begin("preferences", false);
 
   preferences.clear();
-
-  Serial.println("\nUser preferences deleted");
+  Serial.println("User preferences deleted");
 
   preferences.end();
+
+}
+
+void UserPreferences::reset(void) {
+
+  nvs_flash_erase();
+  nvs_flash_init();
 
 }
 

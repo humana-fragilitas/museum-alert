@@ -19,6 +19,7 @@ class UserPreferences {
     std::pair<UserSettings, bool> getPreferences();
     void setPreferences(UserSettings userSettings);
     void deletePreferences(void);
+    void reset(void);
 
 };
 
