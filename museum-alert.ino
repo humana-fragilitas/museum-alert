@@ -190,8 +190,7 @@ void onWiFiEvent(WiFiEvent_t event) {
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        Serial.println("Obtained IP address: ");
-        Serial.print(WiFi.localIP());
+        Serial.printf("Obtained IP address: %s", WiFi.localIP());
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         Serial.println("Lost IP address and IP address is reset to 0");
