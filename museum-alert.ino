@@ -1,5 +1,7 @@
 //#include "mbed.h"
 
+#include <mqtt_client.h>
+
 #include "Pins.h"
 #include "PinSetup.h"
 #include "SerialCom.h"
@@ -27,7 +29,7 @@ bool wiFiLedStatus = false;
 State appState;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
-MQTTClient mqttClient;
+MQTTClient mqttClient(&onMqttEvent, &onMqttMessage);
 BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager(&onWiFiEvent);
 Sensor sensor;
@@ -39,6 +41,7 @@ unsigned const int resetButtonInterval = 4000;
 unsigned int previousResetButtonInterval = 0;
 
 int brokerSetUp = 0;
+esp_mqtt_client_handle_t mqttClientHandle;
 
 void setup() {
 
@@ -98,7 +101,7 @@ void loop() {
       if(!brokerSetUp) {
         brokerSetUp = 1;
         Serial.println("Connect to MQTT Broker");
-        mqttClient.connect();
+        mqttClientHandle = mqttClient.connect().first;
       } 
       break;
 
@@ -190,7 +193,7 @@ void onWiFiEvent(WiFiEvent_t event) {
         appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        Serial.printf("Obtained IP address: %s", WiFi.localIP());
+        Serial.printf("Obtained IP address: %s", (String)WiFi.localIP());
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         Serial.println("Lost IP address and IP address is reset to 0");
@@ -237,6 +240,85 @@ void onTLSCertificate(String certificate) {
 
   Serial.printf("\nReceived TLS/SSL certificate: %s", certificate);
 
+}
+
+void onMqttMessage(char* topic, byte* payload, unsigned int length)
+{
+  Serial.println("Received [");
+  Serial.println(topic);
+  Serial.println("]: ");
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println("");
+}
+
+esp_err_t onMqttEvent(esp_mqtt_event_handle_t event)
+{
+
+  static char incoming_data[128];
+
+  switch (event->event_id)
+  {
+    int i, r;
+
+    case MQTT_EVENT_ERROR:
+      Serial.println("MQTT event MQTT_EVENT_ERROR");
+      break;
+    case MQTT_EVENT_CONNECTED:
+      Serial.println("MQTT event MQTT_EVENT_CONNECTED");
+
+      r = esp_mqtt_client_subscribe(mqttClientHandle, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+      if (r == -1)
+      {
+        Serial.println("Could not subscribe for cloud-to-device messages.");
+      }
+      else
+      {
+        Serial.println("Subscribed for cloud-to-device messages; message id:" + String(r));
+      }
+
+      break;
+    case MQTT_EVENT_DISCONNECTED:
+      Serial.println("MQTT event MQTT_EVENT_DISCONNECTED");
+      break;
+    case MQTT_EVENT_SUBSCRIBED:
+      Serial.println("MQTT event MQTT_EVENT_SUBSCRIBED");
+      break;
+    case MQTT_EVENT_UNSUBSCRIBED:
+      Serial.println("MQTT event MQTT_EVENT_UNSUBSCRIBED");
+      break;
+    case MQTT_EVENT_PUBLISHED:
+      Serial.println("MQTT event MQTT_EVENT_PUBLISHED");
+      break;
+    case MQTT_EVENT_DATA:
+      Serial.println("MQTT event MQTT_EVENT_DATA");
+
+      for (i = 0; i < (INCOMING_DATA_BUFFER_SIZE - 1) && i < event->topic_len; i++)
+      {
+        incoming_data[i] = event->topic[i];
+      }
+      incoming_data[i] = '\0';
+      Serial.println("Topic: " + String(incoming_data));
+
+      for (i = 0; i < (INCOMING_DATA_BUFFER_SIZE - 1) && i < event->data_len; i++)
+      {
+        incoming_data[i] = event->data[i];
+      }
+      incoming_data[i] = '\0';
+      Serial.println("Data: " + String(incoming_data));
+
+      break;
+    case MQTT_EVENT_BEFORE_CONNECT:
+      Serial.println("MQTT event MQTT_EVENT_BEFORE_CONNECT");
+      break;
+    default:
+      Serial.println("MQTT event UNKNOWN");
+      break;
+  }
+
+  return ESP_OK;
 }
 
 void onResetButtonISR(void) {

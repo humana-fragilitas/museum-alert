@@ -93,6 +93,8 @@ class MQTTClient {
     const char* mqtt_broker_uri = "mqtts://" IOT_CONFIG_IOTHUB_FQDN;
     const char* device_id = IOT_CONFIG_DEVICE_ID;
     const int mqtt_port = AZ_IOT_DEFAULT_MQTT_CONNECT_PORT;
+    esp_err_t(*_onMqttEvent)(esp_mqtt_event_handle_t);
+    void(*_onMqttMessage)(char*, byte*, unsigned int);
 
     esp_mqtt_client_handle_t mqtt_client;
     az_iot_hub_client client;
@@ -107,11 +109,11 @@ class MQTTClient {
     char incoming_data[INCOMING_DATA_BUFFER_SIZE];
 
     void initializeIoTHubClient();
-    int initializeMqttClient();
+    std::pair<esp_mqtt_client_handle_t, int> initializeMqttClient();
 
   public:
-
-    void connect();
+    MQTTClient(esp_err_t(*onMqttEvent)(esp_mqtt_event_handle_t), void(*onMqttMessage)(char*, byte*, unsigned int));
+    std::pair<esp_mqtt_client_handle_t, int> connect();
 
 };
 
