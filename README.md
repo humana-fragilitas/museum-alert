@@ -1,4 +1,4 @@
-# Museum Alert
+!["Museum Alert" logo.](docs/images/museum_alert_logo.svg)
 ## Proposal for a dual-purpose museum alerting and information system
 ### Complete project comprising Arduino ESP32 Nano sketch, Node.js backend APIs and Ionic client mobile app as described in the term paper submitted as IoT Capstone exam final report at Curtin University, Internet of Things (IoT) MicroMasters® Program (April - July 2023).
 
