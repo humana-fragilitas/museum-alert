@@ -1,9 +1,9 @@
 <p align="center">
     <img src="docs/images/museum_alert_logo.svg" alt="drawing" width="350" />
 </p>
+<h3 align="center">Proposal for a dual-purpose museum<br>alerting and information system</h3>
 
-## Proposal for a dual-purpose museum alerting and information system
-### Complete project comprising Arduino ESP32 Nano sketch, Node.js backend APIs and Ionic client mobile app as described in the term paper submitted as IoT Capstone exam final report at Curtin University, Internet of Things (IoT) MicroMasters® Program (April - July 2023).
+##### Complete project comprising Arduino ESP32 Nano sketch, Node.js backend APIs and Ionic client mobile app as described in the term paper submitted as IoT Capstone exam final report at Curtin University, Internet of Things (IoT) MicroMasters® Program (April - July 2023).
 
 ## Introduction
 
