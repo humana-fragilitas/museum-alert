@@ -22,12 +22,12 @@ The product proposed in this document, branded as “Museum Alert”, has been c
 Product offering includes two plug and play, Wi-Fi and Bluetooth enabled sensors, a laser tripwire barrier and an ultrasonic distance barrier, with an optional backup battery lasting approximately two hours in case of power outage, coupled with a mobile app hydrated by a backend hosted in the cloud.
 
 The mobile app is freely available to visitors, who can receive notifications on their mobile devices containing information about the works of art or places protected by the barriers themselves whenever they come close to a sensor, while professional users are presented with two choices:
-•	experience a three-month free trial, which allows a maximum of five user accounts (one administrator and four collaborators) and five registered sensors with alert notifications;
-•	pay a monthly 40€ premium fee via in-app purchase to access the following additional features:
-o	up to 20 collaborators, including 5 administrators, and 100 registered sensors;
-o	a CMS system suitable for creating content associated to proximity notifications directed to visitors;
-o	an editable museum map to visualize active sensors;
-o	yearly statistics summarizing registered alert events and attendee’s engagement.
+- experience a three-month free trial, which allows a maximum of five user accounts (one administrator and four collaborators) and five registered sensors with alert notifications;
+- pay a monthly 40€ premium fee via in-app purchase to access the following additional features:
+    * up to 20 collaborators, including 5 administrators, and 100 registered sensors;
+    * a CMS system suitable for creating content associated to proximity notifications directed to visitors;
+    * an editable museum map to visualize active sensors;
+    * yearly statistics summarizing registered alert events and attendee’s engagement.
 
 “Museum Alert” sensors can be set up and configured in two effortless steps.
 First, a representative of an organization creates an administrator account using the app installed on a mobile device connected to the local Wi-Fi network; then, any unregistered sensors will be automatically discovered via Bluetooth by the mobile app itself and user will be prompted to enter Wi-Fi credentials to connect them to the same network as the mobile device.
