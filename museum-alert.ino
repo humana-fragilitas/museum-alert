@@ -29,7 +29,7 @@ bool wiFiLedStatus = false;
 State appState;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
-MQTTClient mqttClient(&onMqttEvent, &onMqttMessage);
+MQTTClient mqttClient(&onMqttEvent);
 BLEManager bleManager(&onWiFiCredentials, &onTLSCertificate);
 WiFiManager wiFiManager(&onWiFiEvent);
 Sensor sensor;
@@ -308,6 +308,8 @@ esp_err_t onMqttEvent(esp_mqtt_event_handle_t event)
       }
       incoming_data[i] = '\0';
       Serial.println("Data: " + String(incoming_data));
+
+      onMqttMessage(event->topic, (unsigned char*)event->data, event->data_len);
 
       break;
     case MQTT_EVENT_BEFORE_CONNECT:

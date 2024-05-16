@@ -15,10 +15,9 @@
 
 #include "MQTTClient.h"
 
-MQTTClient::MQTTClient(esp_err_t(*onMqttEvent)(esp_mqtt_event_handle_t), void(*onMqttMessage)(char*, byte*, unsigned int)) {
+MQTTClient::MQTTClient(esp_err_t(*onMqttEvent)(esp_mqtt_event_handle_t)) {
 
   _onMqttEvent = onMqttEvent;
-  _onMqttMessage = onMqttMessage;
 
 }
 
