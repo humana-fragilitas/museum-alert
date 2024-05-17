@@ -2,6 +2,7 @@
 
 #include <mqtt_client.h>
 
+#include "helpers.h"
 #include "Pins.h"
 #include "PinSetup.h"
 #include "SerialCom.h"
@@ -11,12 +12,9 @@
 #include "BLEManager.h"
 #include "MQTTClient.h"
 
-enum State {
-  INITIALIZE_SERIAL,
+enum AppState {
   CONFIGURE_WIFI,
-  CONNECT_TO_WIFI,
-  SET_PREFERENCES,
-  SET_SSL_CERTIFICATE,
+  GET_SSL_CERTIFICATE,
   CONNECT_TO_MQTT_BROKER,
   INITIALIZED
 };
@@ -26,7 +24,8 @@ TaskHandle_t ledIndicatorsTask;
 String ssid;
 String pass;
 bool wiFiLedStatus = false;
-State appState;
+bool hasBLEConfiguration = false;
+AppState appState;
 std::pair<UserSettings, bool> userPrefs;
 UserPreferences userPreferences;
 MQTTClient mqttClient(&onMqttEvent);
@@ -36,11 +35,8 @@ Sensor sensor;
 
 unsigned const int configureWiFiInterval = 4000;
 unsigned int previousWiFiInterval = 0;
-
 unsigned const int resetButtonInterval = 4000;
 unsigned int previousResetButtonInterval = 0;
-
-int brokerSetUp = 0;
 esp_mqtt_client_handle_t mqttClientHandle;
 
 void setup() {
@@ -53,10 +49,8 @@ void setup() {
 
   initializeUI();
 
-  appState = (wiFiManager.connectToWiFi() != WL_CONNECTED) ?
-    CONFIGURE_WIFI : SET_SSL_CERTIFICATE;
-
-  if (appState == CONFIGURE_WIFI) bleManager.initializeBLEConfigurationService();
+  appState = (wiFiManager.connectToWiFi() == WL_CONNECTED) ?
+    GET_SSL_CERTIFICATE : CONFIGURE_WIFI;
 
   //BaseType_t coreID = xPortGetCoreID();
   //Serial.print("setup() is running on core ");
@@ -74,35 +68,24 @@ void loop() {
 
   switch(appState) {
 
-    case CONNECT_TO_WIFI:
-      if (wiFiManager.connectToWiFi() == WL_CONNECTED) {
-        appState = SET_SSL_CERTIFICATE;
-      } else {
-        bleManager.initializeBLEConfigurationService();
-        appState = CONFIGURE_WIFI;
-      }
-      break;
-
     case CONFIGURE_WIFI:
-      if (currentMillis - previousWiFiInterval >= configureWiFiInterval) {
-        configureWiFi();
-        Serial.printf("Millis: %d", currentMillis - previousWiFiInterval);
-        previousWiFiInterval = currentMillis;
-      }
+      once([]{
+        bleManager.initializeBLEConfigurationService();
+      });
+      onEveryMS(currentMillis, configureWiFiInterval, configureWiFi);
       break;
 
-    case SET_SSL_CERTIFICATE:
+    case GET_SSL_CERTIFICATE:
       //err = esp_tls_set_global_ca_store(DSTroot_CA, sizeof(DSTroot_CA));
 	    //Serial.printf("\nCA store set. Error = %d %s", err, esp_err_to_name(err));
       appState = CONNECT_TO_MQTT_BROKER;
       break;
 
     case CONNECT_TO_MQTT_BROKER:
-      if(!brokerSetUp) {
-        brokerSetUp = 1;
+      once([]{
         Serial.println("Connect to MQTT Broker");
         mqttClientHandle = mqttClient.connect().first;
-      } 
+      });
       break;
 
     case INITIALIZED:
@@ -178,26 +161,22 @@ void onWiFiEvent(WiFiEvent_t event) {
         break;
     case ARDUINO_EVENT_WIFI_STA_STOP:
         Serial.println("WiFi clients stopped");
-        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         Serial.println("Connected to access point");
-        appState = SET_SSL_CERTIFICATE;
+        appState = GET_SSL_CERTIFICATE;
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         Serial.println("Disconnected from WiFi access point");
-        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         Serial.println("Authentication mode of access point has changed");
-        appState = CONNECT_TO_WIFI;
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
         Serial.printf("Obtained IP address: %s", (String)WiFi.localIP());
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         Serial.println("Lost IP address and IP address is reset to 0");
-        appState = CONNECT_TO_WIFI;
         break;
 
   }
@@ -278,6 +257,8 @@ esp_err_t onMqttEvent(esp_mqtt_event_handle_t event)
       {
         Serial.println("Subscribed for cloud-to-device messages; message id:" + String(r));
       }
+
+      appState = INITIALIZED;
 
       break;
     case MQTT_EVENT_DISCONNECTED:
@@ -362,11 +343,8 @@ void onResetButtonISR(void) {
 
 void ledIndicators(void *parameter) {
 
-  unsigned long previousLedBlinkInterval = 0;
-  const unsigned long ledBlinkInterval = 500;
-
-  unsigned long previousLedBlinkInterval2 = 0;
-  const unsigned long ledBlinkInterval2 = 250;
+  const unsigned long defaultInterval = 500;
+  const unsigned long configureWiFiInterval = 250;
 
   for(;;) {
 
@@ -374,18 +352,15 @@ void ledIndicators(void *parameter) {
 
     switch(appState) {
 
-      case CONNECT_TO_WIFI:
-        if (currentMillis - previousLedBlinkInterval >= ledBlinkInterval) {
-          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
-          previousLedBlinkInterval = currentMillis;
-        }
-        break;
       case CONFIGURE_WIFI:
-        if (currentMillis - previousLedBlinkInterval2 >= ledBlinkInterval2) {
+        onEveryMS(currentMillis, configureWiFiInterval, []{
           digitalWrite(wiFiPin, !digitalRead(wiFiPin));
-          previousLedBlinkInterval2 = currentMillis;
-        }
+        });
         break;
+      default:
+        onEveryMS(currentMillis, defaultInterval, []{
+          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+        });
 
     }
     
