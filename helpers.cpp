@@ -11,7 +11,7 @@ void once(callback cbFunction) {
 
     for (size_t i = 0; i < onceCallbackEntries.size(); ++i) {
       if (onceCallbackEntries[i] == cbFunction) {
-          break;
+          return;
       }
     }
     

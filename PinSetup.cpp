@@ -7,6 +7,7 @@ void pinSetup() {
   pinMode(triggerPin, OUTPUT);
   pinMode(alarmPin, OUTPUT);
   pinMode(wiFiPin, OUTPUT);
+  pinMode(appStatusPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(resetButtonPin, INPUT);
 

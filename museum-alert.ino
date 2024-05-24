@@ -89,10 +89,9 @@ void loop() {
       break;
 
     case INITIALIZED:
-      while(1) {
+      once([]{
         Serial.println("\nSensor check + BLE beacon");
-        delay(2000);
-      }
+      });
       break;
 
   }
@@ -152,22 +151,28 @@ void onWiFiEvent(WiFiEvent_t event) {
 
     case ARDUINO_EVENT_WIFI_READY: 
         Serial.println("WiFi interface ready");
+        digitalWrite(wiFiPin, LOW);
         break;
     case ARDUINO_EVENT_WIFI_SCAN_DONE:
         Serial.println("Completed scan for access points");
+        digitalWrite(wiFiPin, LOW);
         break;
     case ARDUINO_EVENT_WIFI_STA_START:
         Serial.println("WiFi client started");
+        digitalWrite(wiFiPin, LOW);
         break;
     case ARDUINO_EVENT_WIFI_STA_STOP:
         Serial.println("WiFi clients stopped");
+        digitalWrite(wiFiPin, LOW);
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         Serial.println("Connected to access point");
+        digitalWrite(wiFiPin, HIGH);
         appState = GET_SSL_CERTIFICATE;
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         Serial.println("Disconnected from WiFi access point");
+        digitalWrite(wiFiPin, LOW);
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         Serial.println("Authentication mode of access point has changed");
@@ -354,12 +359,12 @@ void ledIndicators(void *parameter) {
 
       case CONFIGURE_WIFI:
         onEveryMS(currentMillis, configureWiFiInterval, []{
-          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          digitalWrite(appStatusPin, !digitalRead(appStatusPin));
         });
         break;
       default:
         onEveryMS(currentMillis, defaultInterval, []{
-          digitalWrite(wiFiPin, !digitalRead(wiFiPin));
+          digitalWrite(appStatusPin, !digitalRead(appStatusPin));
         });
 
     }
