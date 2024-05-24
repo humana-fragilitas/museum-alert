@@ -1,3 +1,6 @@
 [submodule "museum-alert-pwa"]
 	path = museum-alert-pwa
 	url = https://github.com/humana-fragilitas/museum-alert-pwa.git
+[submodule "museum-alert-sketch"]
+	path = museum-alert-sketch
+	url = https://github.com/humana-fragilitas/museum-alert-sketch.git
