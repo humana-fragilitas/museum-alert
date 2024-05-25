@@ -4,3 +4,6 @@
 [submodule "museum-alert-sketch"]
 	path = museum-alert-sketch
 	url = https://github.com/humana-fragilitas/museum-alert-sketch.git
+[submodule "museum-alert-api"]
+	path = museum-alert-api
+	url = https://github.com/humana-fragilitas/museum-alert-api.git
