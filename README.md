@@ -103,7 +103,198 @@ A technical investigation on available Internet connectivity options for the sen
 
 Also, in the context of art exhibitions, Bluetooth Low Energy beacons have been documented in the scientific literature as means to enhance the overall experience of visitors via gamification [^25] and illustration of collections [^26] and the underlying technology is well supported by common prototyping MCUs such as Arduino UNO Wi-Fi REV2 used in this project.
 
-[^1]: UNESCO, “Supporting museums: UNESCO report points to options for the future,” UNESCO, 2023. [Online]. Available: https://www.unesco.org/. [Accessed: June 1, 2023].
+```c++
+#include <WiFiClientSecure.h>
+#include <MQTTClient.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <esp_tls.h>
+#include "WiFi.h"
+
+#define SECRET
+#define THINGNAME "MAS-EC357A188534"
+
+const char WIFI_SSID[] = "Pixel_9824";
+const char WIFI_PASSWORD[] = "qyqijczyz2p37xz";
+const char AWS_IOT_ENDPOINT[] = "avo0w7o1tlck1-ats.iot.eu-west-1.amazonaws.com";
+
+// Amazon Root CA 1
+static const char AWS_CERT_CA[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
+ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
+b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
+MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
+b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
+ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
+9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
+IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
+VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
+93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
+jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
+A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
+U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs
+N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv
+o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
+5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy
+rqXRfboQnoZsG4q5WTP468SQvvG5
+-----END CERTIFICATE-----
+)EOF";
+
+// Device Certificate
+static const char AWS_CERT_CRT[] PROGMEM = R"KEY(
+-----BEGIN CERTIFICATE-----
+MIIDWTCCAkGgAwIBAgIUaoqmNzBQ1fGkumUTTxRinzsOSRAwDQYJKoZIhvcNAQEL
+BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g
+SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTI0MDUyOTEzMzU1
+NloXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0
+ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMmZnQnmORFgdifF6MFl
+9fx4O0dDs6dYuwj5bsF5SItS30LTRn4R1DjyLb3sPMUSlfWqZUePBQfKH5DRJNNF
+uCaBDV7Cw6whewbB1YMSnjO9G6uIiUP8VlFZ4PDxscRBo4NFA6suXsg1ZnwE9tO3
+ipGwaq4MXyY0B6M3XbnO2Tr1JrY7IG3BFO9BygMnyAQHsUMBIf22b/B+SiBfi32U
+tQmeuRdT7NFSZKITahISfoKLVg0/KZAA7kF9vQd6fcwu4zEUXREq1iiiu2ngDUEc
+M02EjtYbpSfzfdJ66Lbt+CJryyvlAfDakw63QoDMQ3hRx6BacrB1ggjms/apX+ml
+Mc8CAwEAAaNgMF4wHwYDVR0jBBgwFoAULmOfqHj0IuQUknQqXUVvLWspveMwHQYD
+VR0OBBYEFEUEWozrYWSqXxii8wgLnWYoKXuGMAwGA1UdEwEB/wQCMAAwDgYDVR0P
+AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQABHwDNiDmjC0/Ta59pSrYH16AR
+bF3+1XzmHFMAtZ/Tv2ki7d8N6P9xad7hvVliWW7Igjya2jds6NeaRcQQ78Agj6Ps
+cPQGeBcC+32ZpOmwXZ33Jdi95C0FMJgTgzBHe6AWsEetjMWN+/bFwRSQfeLurHA4
+14PbpwY/FqOrERZp8Uml/8PWg1jK+nrbqTQgqmlU+cWiblg69OamlNJesyRBHkrM
+hNqGV3LphtdFDZn/U7+OWnP9R5f/CxVz2ia0piFaEchG19lqims/WentYiidOOJT
+zAxu7w1SmnVHBRFMzi4rAFwKY/k8ywzfM1q2nkgdR7uWPoSDyL/J/xvkh0T8
+-----END CERTIFICATE-----
+)KEY";
+
+// Device Private Key
+static const char AWS_CERT_PRIVATE[] PROGMEM = R"KEY(
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAyZmdCeY5EWB2J8XowWX1/Hg7R0Ozp1i7CPluwXlIi1LfQtNG
+fhHUOPItvew8xRKV9aplR48FB8ofkNEk00W4JoENXsLDrCF7BsHVgxKeM70bq4iJ
+Q/xWUVng8PGxxEGjg0UDqy5eyDVmfAT207eKkbBqrgxfJjQHozdduc7ZOvUmtjsg
+bcEU70HKAyfIBAexQwEh/bZv8H5KIF+LfZS1CZ65F1Ps0VJkohNqEhJ+gotWDT8p
+kADuQX29B3p9zC7jMRRdESrWKKK7aeANQRwzTYSO1hulJ/N90nrotu34ImvLK+UB
+8NqTDrdCgMxDeFHHoFpysHWCCOaz9qlf6aUxzwIDAQABAoIBABWfQSWPqK1BcErB
+wj4D5ocmig0RqNIZBS5oOkXL8UjoIYP0Two0dVOKPfexv67PWIAZv3UWVM7KEeqh
+U9bJEoAmtT1lnED48k3+Oh0twQQBk1cpdLdy9/sPrb2J3qwS8iuhGkyg04+bkptY
+mPSKKfWIO1jhgM8DI5KQ3J+SHOBivAGUwGiSpITGUrVKuyv7eHCHT9B6yhMcW2Si
+KEPniAAu7mjVV9g/9CcvRQkkc0vp4f0VYYCHZE2KJOf2udctuqKCccYprGv0CkJC
+CT2i+uFcjVrIJh03AaWcIYRjlrtmqItodPju85pmh+mPswZDfMYnrp16vgrzSdiR
+vgDkRgECgYEA5Od/pzZqUTI6ZIN3Z69NOO1S9xeSp80HEh6hN63zgMwa2VyBJRay
+qWoolw+RLtTdJ8KsXHI9JBjtNcJW0iWgqPwAqA0nTRO1jpeLCeQF1NQzSnLlqoXc
+RC3QgYdd1Z0c0fVJGJQi/PPX1IRtBSEuB53Ycu5xRXEIwejYZWmSMQECgYEA4Xa2
+cqYONigTGzcDlJGG/hIqbAbJeZ6WfFUEZ3nUj3vxQnl1Hkdu4G9oI6qRd0ptibVF
+rXhYuCtQ9VQ7GJaCgbqE2vrtxWhiskrDmqqeYYVSCtS3IUxs2trCG7QX8VEj2oIl
+Kq+46hPyr0jVOYjDH/2vBfGIR0/jTofpuT99ks8CgYALX1UAQbvWfOBZzg5IoHT9
+twzAKfOnUpBfXhY0ZfgLFhjfY7Em3pHRyOxrVOKpqPmz2AAoN6TB/lsKqLUXi7cH
+rj16G+0v7yK+CtlljGadxE0oDb1LU4s19/C7/rWyvzOHWuBe0D1Mw/CdJlckQhm/
+VyBB1YbbJFqDB8Z4g144AQKBgQCp2iEAphC2w+IA8qUD285ywYSr9UD7GnoMGJBE
+1AdKQPk0NwQAV5g0BDnUBL+puqxivelMEgnkVN2ctGQA1gJjcPx9a+SMf2M7Jg/O
+CRNgLGvuNOnxb/3hskPhUv9mkNYN21Xcnp0T2wtM+fWIbntxMlAUji04a/q2QrXV
+FPupCQKBgBXp6wLkUEdTUhGRklmJEmuosDMe35hiQD51IdENxKCuhLRqR7cPDFnb
+OvSDgOWDLWTohDpDHllkBVh5Wxj5KSAHogoX/vZ5hg8pWei3YXJitqqFZkrt8q1n
+/S9dV80291Pp+NhiRp9F7Fo2YvyG/bH1OGFfOrRxNxLS/FRhEKqM
+-----END RSA PRIVATE KEY-----
+)KEY";
+
+// The MQTT topics that this device should publish/subscribe
+#define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
+#define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
+
+WiFiClientSecure net = WiFiClientSecure();
+PubSubClient client(net);
+
+// "Pixel_9824", "qyqijczyz2p37xz"
+
+void connectAWS()
+{
+
+  esp_tls_set_global_ca_store((const unsigned char*)AWS_CERT_CA, sizeof((const unsigned char*)AWS_CERT_CA));
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.println("Connecting to Wi-Fi");
+
+  while (WiFi.status() != WL_CONNECTED){
+    delay(500);
+    Serial.print(".");
+  }
+
+  // Configure WiFiClientSecure to use the AWS IoT device credentials
+  net.setCACert(AWS_CERT_CA);
+  net.setCertificate(AWS_CERT_CRT);
+  net.setPrivateKey(AWS_CERT_PRIVATE);
+
+  Serial.println("Initializing MQTT Client");
+
+  // Connect to the MQTT broker on the AWS endpoint we defined earlier
+  //client.begin(AWS_IOT_ENDPOINT, 8883, net);
+
+
+  client.setServer(AWS_IOT_ENDPOINT, 8883);
+
+  // Create a message handler
+  //client.onMessage(messageHandler);
+
+  Serial.println("Connecting to AWS");
+
+  while (!client.connect(THINGNAME)) {
+    Serial.println(client.state());
+    Serial.print(".");
+    delay(100);
+  }
+
+  if(!client.connected()){
+    Serial.println("AWS IoT Timeout!");
+    return;
+  }
+
+  // Subscribe to a topic
+  client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
+
+  Serial.println("AWS IoT Connected!");
+}
+
+void publishMessage()
+{
+  StaticJsonDocument<200> doc;
+  doc["time"] = millis();
+  doc["sensor_a0"] = analogRead(0);
+  char jsonBuffer[512];
+  serializeJson(doc, jsonBuffer); // print to client
+
+  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+}
+
+void messageHandler(String &topic, String &payload) {
+  Serial.println("incoming: " + topic + " - " + payload);
+
+//  StaticJsonDocument<200> doc;
+//  deserializeJson(doc, payload);
+//  const char* message = doc["message"];
+}
+
+void setup() {
+  Serial.begin(9600);
+
+  Serial.println("Initializing serial connection");
+
+  while (!Serial) { };
+
+  connectAWS();
+
+}
+
+void loop() {
+  //publishMessage();
+  client.loop();
+  delay(1000);
+}
+
+```
+
+[^1]: UNESCO, “Supporting museums: UNESCO report points to options for the future,” UNESCO, 2023. [Online]. Available: https://www.unesco.org/. [Accessed: June 1, 2023]. 
 [^2]: UNESCO, “UNESCO report: museums around the world in the face of COVID-19,” UNESCO, CLT/CCE/2021/RP/1, 2021. [Online]. Available: https://unesdoc.unesco.org/. [Accessed: June 1, 2023].
 [^3]: Statista Research Department, “Number of museums worldwide as of March 2021, by UNESCO regional classification,” Statista, 2023. [Online]. Available: https://www.statista.com/. [Accessed: June 5, 2023].
 [^4]: D. Liston, Ed., Museum Security and Protection. A handbook for cultural heritage institutions, London: Routledge, 1993, p. 16.
