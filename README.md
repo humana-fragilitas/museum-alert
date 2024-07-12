@@ -294,6 +294,107 @@ void loop() {
 
 ```
 
+```javascript
+import { CognitoIdentityClient, GetIdCommand, GetCredentialsForIdentityCommand } from "@aws-sdk/client-cognito-identity";
+import { IoTClient, CreatePolicyCommand, CreatePolicyVersionCommand, AttachPolicyCommand } from "@aws-sdk/client-iot";
+
+export const handler = async (event) => {
+    
+    console.log(JSON.stringify(event));
+    
+    const userName = event.userName;
+    const userAttributes = event.request.userAttributes;
+    const company = userAttributes['custom:Company'];
+    const cognitoSub = userAttributes['sub']; // Using the sub attribute from userAttributes
+
+    if (!company) {
+        console.error(`No Company attribute found for user ${userName}`);
+        throw new Error('Company attribute is required');
+    }
+
+    const iotClient = new IoTClient({ region: process.env.AWS_REGION });
+    const cognitoIdentity = new CognitoIdentityClient({ region: process.env.AWS_REGION });
+
+    const policyName = `IoTPolicy_${company}`;
+
+    try {
+        // Get Cognito Identity ID for the user
+        const getIdParams = {
+            IdentityPoolId: process.env.IDENTITY_POOL_ID,
+            Logins: {
+                [`cognito-idp.${process.env.AWS_REGION}.amazonaws.com/${event.userPoolId}`]: cognitoSub
+            }
+        };
+        const getIdCommand = new GetIdCommand(getIdParams);
+        const identityData = await cognitoIdentity.send(getIdCommand);
+        const identityId = identityData.IdentityId;
+
+        // Get Credentials for the identity
+        const getCredentialsParams = {
+            IdentityId: identityId
+        };
+        const getCredentialsCommand = new GetCredentialsForIdentityCommand(getCredentialsParams);
+        const credentialsData = await cognitoIdentity.send(getCredentialsCommand);
+
+        // Create or update the IoT policy
+        const policyDocument = JSON.stringify({
+            Version: '2012-10-17',
+            Statement: [{
+                Effect: 'Allow',
+                Action: 'iot:Connect',
+                Resource: `arn:aws:iot:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:client/${identityId}`
+            }, {
+                Effect: 'Allow',
+                Action: [
+                    "iot:Subscribe",
+                    "iot:Receive",
+                    "iot:Publish"
+                ],
+                Resource: [
+                    `arn:aws:iot:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:topicfilter/company/${company}/events`,
+                    `arn:aws:iot:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:topic/company/${company}/events`
+                ]
+            }]
+        });
+
+        const createPolicyCommand = new CreatePolicyCommand({
+            policyName: policyName,
+            policyDocument: policyDocument
+        });
+
+        try {
+            await iotClient.send(createPolicyCommand);
+        } catch (error) {
+            if (error.name === 'ResourceAlreadyExistsException') {
+                const createPolicyVersionCommand = new CreatePolicyVersionCommand({
+                    policyName: policyName,
+                    policyDocument: policyDocument,
+                    setAsDefault: true
+                });
+                await iotClient.send(createPolicyVersionCommand);
+            } else {
+                throw error;
+            }
+        }
+
+        const attachPolicyCommand = new AttachPolicyCommand({
+            policyName: policyName,
+            target: identityId
+        });
+        await iotClient.send(attachPolicyCommand);
+
+        console.log(`Successfully created/updated and attached IoT policy for user ${userName} of company ${company}`);
+
+    } catch (error) {
+        console.error(`Error processing IoT policy for user ${userName}: ${error.message}`);
+        throw error;
+    }
+
+    return event;
+    
+};
+```
+
 [^1]: UNESCO, “Supporting museums: UNESCO report points to options for the future,” UNESCO, 2023. [Online]. Available: https://www.unesco.org/. [Accessed: June 1, 2023]. 
 [^2]: UNESCO, “UNESCO report: museums around the world in the face of COVID-19,” UNESCO, CLT/CCE/2021/RP/1, 2021. [Online]. Available: https://unesdoc.unesco.org/. [Accessed: June 1, 2023].
 [^3]: Statista Research Department, “Number of museums worldwide as of March 2021, by UNESCO regional classification,” Statista, 2023. [Online]. Available: https://www.statista.com/. [Accessed: June 5, 2023].
