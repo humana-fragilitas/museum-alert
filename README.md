@@ -395,6 +395,60 @@ export const handler = async (event) => {
 };
 ```
 
+### Device provisioning template
+
+```json
+{ 
+    "Resources" : {
+        "thing" : {
+            "Type" : "AWS::IoT::Thing",
+            "Properties" : {
+                "ThingName" : {"Ref" : "ThingName"},
+                "AttributePayload" : {
+                    "Company" :  {"Ref" : "Company"}
+                }, 
+                "ThingTypeName" :  "Museum-Alert-Sensor"
+            },
+            "OverrideSettings" : {
+                "AttributePayload" : "REPLACE",
+                "ThingTypeName" : "REPLACE"
+            }
+        },  
+        "certificate" : {
+            "Type" : "AWS::IoT::Certificate",
+            "Properties": {
+                "CertificateId": {"Ref": "AWS::IoT::Certificate::Id"},
+                "Status" : "Active"
+            }
+        },
+        "policy" : {
+            "Type" : "AWS::IoT::Policy",
+            "Properties" : {
+                "PolicyDocument" : {
+                    "Fn::Sub": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iot:Connect\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${ThingName}\"}, {\"Effect\": \"Allow\", \"Action\": \"iot:Subscribe\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/events\" }, { \"Effect\": \"Allow\", \"Action\": \"iot:Receive\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/companies/${Company}/devices/${ThingName}/events\" , { \"Effect\": \"Allow\", \"Action\": \"iot:Publish\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/companies/${Company}/devices/${ThingName}/events\" }]}" 
+                }
+            }
+        }
+    }
+}
+```
+
+### Device provisioning template creation
+
+```bash
+aws iot create-provisioning-template \
+    --template-name museum-alert-provisioning-template \
+    --description "A provisioning template for Museum Alert sensors" \
+    --provisioning-role-arn arn:aws:iam::767398097786:role/device-provisioning-role \
+    --template-body file://device-provisioning-template.json
+
+{
+"templateArn": "arn:aws:iot:eu-west-1:767398097786:provisioningtemplate/museum-alert-provisioning-template",
+"templateName": "museum-alert-provisioning-template",
+"defaultVersionId": 1
+}
+```
+
 [^1]: UNESCO, “Supporting museums: UNESCO report points to options for the future,” UNESCO, 2023. [Online]. Available: https://www.unesco.org/. [Accessed: June 1, 2023]. 
 [^2]: UNESCO, “UNESCO report: museums around the world in the face of COVID-19,” UNESCO, CLT/CCE/2021/RP/1, 2021. [Online]. Available: https://unesdoc.unesco.org/. [Accessed: June 1, 2023].
 [^3]: Statista Research Department, “Number of museums worldwide as of March 2021, by UNESCO regional classification,” Statista, 2023. [Online]. Available: https://www.statista.com/. [Accessed: June 5, 2023].
