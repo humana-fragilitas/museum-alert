@@ -399,6 +399,14 @@ export const handler = async (event) => {
 
 ```json
 { 
+    "Parameters": {
+        "ThingName" : {
+            "Type" : "String"
+        },
+        "Company": {
+            "Type" : "String"
+        }
+    },
     "Resources" : {
         "thing" : {
             "Type" : "AWS::IoT::Thing",
@@ -418,14 +426,30 @@ export const handler = async (event) => {
             "Type" : "AWS::IoT::Certificate",
             "Properties": {
                 "CertificateId": {"Ref": "AWS::IoT::Certificate::Id"},
-                "Status" : "Active"
+                "Status" : "ACTIVE"
             }
         },
         "policy" : {
             "Type" : "AWS::IoT::Policy",
             "Properties" : {
                 "PolicyDocument" : {
-                    "Fn::Sub": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iot:Connect\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${ThingName}\"}, {\"Effect\": \"Allow\", \"Action\": \"iot:Subscribe\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/events\" }, { \"Effect\": \"Allow\", \"Action\": \"iot:Receive\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/companies/${Company}/devices/${ThingName}/events\" , { \"Effect\": \"Allow\", \"Action\": \"iot:Publish\", \"Resource\": \"arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/companies/${Company}/devices/${ThingName}/events\" }]}" 
+                    "Fn::Sub": [
+                        "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iot:Connect\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:client/${ThingName}\"}, {\"Effect\": \"Allow\", \"Action\": \"iot:Subscribe\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topicfilter/companies/${Company}/devices/${ThingName}/events\" }, { \"Effect\": \"Allow\", \"Action\": \"iot:Receive\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topic/companies/${Company}/devices/${ThingName}/events\"} , { \"Effect\": \"Allow\", \"Action\": \"iot:Publish\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topic/companies/${Company}/devices/${ThingName}/events\" }]}",
+                        {
+                            "ThingName":{
+                                "Ref":"ThingName"
+                            },
+                            "Company":{
+                                "Ref":"Company"
+                            },
+                            "AWSRegion":{
+                                "Ref":"AWS::Region"
+                            },
+                            "AWSAccountId":{
+                                "Ref":"AWS::AccountId"
+                            }
+                        } 
+                    ] 
                 }
             }
         }
@@ -433,21 +457,68 @@ export const handler = async (event) => {
 }
 ```
 
-### Device provisioning template creation
+### Thing type and device provisioning template creation
 
 ```bash
+
+$ aws iot create-thing-type \
+    --thing-type-name "Museum-Alert-Sensor" --thing-type-properties "thingTypeDescription=Alerting sensor and beacon broadcaster, searchableAttributes=Company"
+
+{
+    "thingTypeName": "Museum-Alert-Sensor",
+    "thingTypeArn": "arn:aws:iot:eu-west-1:767398097786:thingtype/Museum-Alert-Sensor",
+    "thingTypeId": "08e0d3d6-7454-42d4-87bb-24cbfb6fc0f1"
+}
+
+aws iot delete-provisioning-template \
+    --template-name museum-alert-provisioning-template
+
 aws iot create-provisioning-template \
     --template-name museum-alert-provisioning-template \
     --description "A provisioning template for Museum Alert sensors" \
     --provisioning-role-arn arn:aws:iam::767398097786:role/device-provisioning-role \
-    --template-body file://device-provisioning-template.json
+    --template-body file://provisioning-template.json \
+    --enabled
 
 {
-"templateArn": "arn:aws:iot:eu-west-1:767398097786:provisioningtemplate/museum-alert-provisioning-template",
-"templateName": "museum-alert-provisioning-template",
-"defaultVersionId": 1
+    "templateArn": "arn:aws:iot:eu-west-1:767398097786:provisioningtemplate/museum-alert-provisioning-template",
+    "templateName": "museum-alert-provisioning-template",
+    "defaultVersionId": 1
 }
 ```
+
+### Steps to register the device with trusted user provisioning
+
+```bash
+
+Subscribe to the following topics:
+
+- $aws/certificates/create/json
+- $aws/provisioning-templates/museum-alert-provisioning-template/provision/json/accepted
+
+Publish an empty payload on this topic: $aws/certificates/create/json
+
+Publish the following payload on this topic: $aws/provisioning-templates/museum-alert-provisioning-template/provision/json
+
+{
+    "certificateOwnershipToken": "<TOKEN HERE>",
+    "parameters": {
+        "ThingName": "MAS-999999999",
+        "Company": "ACME"
+    }
+}
+
+Sample response:
+
+{"deviceConfiguration":{},"thingName":"MAS-999999999"}
+
+Sample error response:
+
+{"statusCode":400,"errorCode":"InvalidParameters","errorMessage":"Cannot resolve reference value: AWS::Region"}
+
+// https://docs.aws.amazon.com/iot/latest/developerguide/auto-register-device-cert.html
+```
+
 
 [^1]: UNESCO, “Supporting museums: UNESCO report points to options for the future,” UNESCO, 2023. [Online]. Available: https://www.unesco.org/. [Accessed: June 1, 2023]. 
 [^2]: UNESCO, “UNESCO report: museums around the world in the face of COVID-19,” UNESCO, CLT/CCE/2021/RP/1, 2021. [Online]. Available: https://unesdoc.unesco.org/. [Accessed: June 1, 2023].
