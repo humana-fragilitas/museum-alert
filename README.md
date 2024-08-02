@@ -477,8 +477,17 @@ aws iot create-provisioning-template \
     --template-name museum-alert-provisioning-template \
     --description "A provisioning template for Museum Alert sensors" \
     --provisioning-role-arn arn:aws:iam::767398097786:role/device-provisioning-role \
+    --pre-provisioning-hook '{"targetArn":"arn:aws:lambda:eu-west-1:767398097786:function:preProvisioningHook","payloadVersion":"2020-04-01"}' \
     --template-body file://provisioning-template.json \
     --enabled
+
+In the pre-provisioning lambda panel, select "Resource-based policy statements" and add a statement so that lambda:InvokeFunction is callable from the provisioning template resource (see templateArn below)
+
+aws iot update-provisioning-template \
+    --template-name museum-alert-provisioning-template \
+    --pre-provisioning-hook '{"targetArn":"arn:aws:lambda:eu-west-1:767398097786:function:preProvisioningHook","payloadVersion":"2020-04-01"}' \
+    --enabled
+
 
 {
     "templateArn": "arn:aws:iot:eu-west-1:767398097786:provisioningtemplate/museum-alert-provisioning-template",
