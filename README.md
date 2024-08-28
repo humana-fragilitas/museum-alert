@@ -397,6 +397,8 @@ export const handler = async (event) => {
 
 ### Device provisioning template
 
+Note: "Region" and "AccountId" are passed via pre-provisioning lambda function.
+
 ```json
 { 
     "Parameters": {
@@ -405,6 +407,12 @@ export const handler = async (event) => {
         },
         "Company": {
             "Type" : "String"
+        },
+        "Region": {
+            "Type": "String"
+        },
+        "AccountId": {
+            "Type": "String"
         }
     },
     "Resources" : {
@@ -434,7 +442,7 @@ export const handler = async (event) => {
             "Properties" : {
                 "PolicyDocument" : {
                     "Fn::Sub": [
-                        "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iot:Connect\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:client/${ThingName}\"}, {\"Effect\": \"Allow\", \"Action\": \"iot:Subscribe\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topicfilter/companies/${Company}/devices/${ThingName}/events\" }, { \"Effect\": \"Allow\", \"Action\": \"iot:Receive\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topic/companies/${Company}/devices/${ThingName}/events\"} , { \"Effect\": \"Allow\", \"Action\": \"iot:Publish\", \"Resource\": \"arn:aws:iot:${AWSRegion}:${AWSAccountId}:topic/companies/${Company}/devices/${ThingName}/events\" }]}",
+                        "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iot:Connect\", \"Resource\": \"arn:aws:iot:${Region}:${AccountId}:client/${ThingName}\"}, {\"Effect\": \"Allow\", \"Action\": \"iot:Subscribe\", \"Resource\": \"arn:aws:iot:${Region}:${AccountId}:topicfilter/companies/${Company}/devices/${ThingName}/events\" }, { \"Effect\": \"Allow\", \"Action\": \"iot:Receive\", \"Resource\": \"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events\"} , { \"Effect\": \"Allow\", \"Action\": \"iot:Publish\", \"Resource\": \"arn:aws:iot:${Region}:${AccountId}:topic/companies/${Company}/devices/${ThingName}/events\" }]}",
                         {
                             "ThingName":{
                                 "Ref":"ThingName"
@@ -442,11 +450,11 @@ export const handler = async (event) => {
                             "Company":{
                                 "Ref":"Company"
                             },
-                            "AWSRegion":{
-                                "Ref":"AWS::Region"
+                            "Region": {
+                                "Ref": "Region"
                             },
-                            "AWSAccountId":{
-                                "Ref":"AWS::AccountId"
+                            "AccountId": {
+                                "Ref": "AccountId"
                             }
                         } 
                     ] 
