@@ -506,7 +506,7 @@ aws iot update-provisioning-template \
 
 ### Steps to register the device with trusted user provisioning
 
-Call to endpoint to generate provisioning claims returns a payload as follows:
+Call to endpoint to generate provisioning claims (/development/device-management/provisioning-claims/) returns a payload as follows:
 
 ```json
 
@@ -514,26 +514,24 @@ Call to endpoint to generate provisioning claims returns a payload as follows:
 
 ```
 
+The above ```certificatePem```, ```PrivateKey``` and public ```Amazon AWS CA``` root are then used to connect to IoTCore and subscribe to the following topics:
+
 ```bash
-
-The above 'certificatePem', 'PrivateKey' and public Amazon AWS CA root are the used to connect to IoTCore and subscribe to the following topics:
-
 - $aws/certificates/create/json
 - $aws/provisioning-templates/museum-alert-provisioning-template/provision/json/accepted
+```
 
-Publish an empty payload on this topic: $aws/certificates/create/json
+Publish an empty payload on this topic: ```$aws/certificates/create/json```
 
 The above publication generates a json response as follows, containing the production certificates suitable for connecting the device and a 'certificateOwnershipToken' ti be specified as parameter in the next message publication:
-
-```
 
 ```json
 {"certificateId":"ea0fe4504c4fd6f65282b8b5 [...] ffb7e1bbb2ea2ad9a2ffe7ab2ba3a2a","certificatePem":"-----BEGIN CERTIFICATE-----\nMIIDWTCCAkGgAwIBAgIUMc8lVF9rfCCS [...] RvsG+7EFUneR16DIWsVkdkAtiIndyTN\n-----END CERTIFICATE-----\n","privateKey":"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQ [...] ZRDoXF2BjlzLpQNg==\n-----END RSA PRIVATE KEY-----\n","certificateOwnershipToken":"eyJ2ZXJzaW9uIjoiMjAxOTE [...] hXODIrMVZaTml2enhGdy8zSUIvNHVLVjVnekp4aGR4UUY0bz0ifQ=="}
 ```
 
-```bash
-Publish the following payload on this topic: $aws/provisioning-templates/museum-alert-provisioning-template/provision/json
+Now complete device provisioning by publishing the following payload on this topic: ```$aws/provisioning-templates/museum-alert-provisioning-template/provision/json```. The ```certificateOwnershipToken``` is contained in the previous response message.
 
+```json
 {
     "certificateOwnershipToken": "<TOKEN HERE>",
     "parameters": {
@@ -541,11 +539,11 @@ Publish the following payload on this topic: $aws/provisioning-templates/museum-
         "Company": "ACME"
     }
 }
+```
 
-{"certificateId":"ea0fe4504c4fd6f65282b8b5f5c19b3b9ffb7e1bbb2ea2ad9a2ffe7ab2ba3a2a","certificatePem":"-----BEGIN CERTIFICATE-----\nMIIDWTCCAkGgAwIBAgIUMc8lVF9rfCCSvPXSY5dwARNWOQMwDQYJKoZIhvcNAQEL\nBQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\nSW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTI1MDEyNzEzNTE1\nNVoXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0\nZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMsAdzT0MxHZyVJG1q36\nXEI7Xa2BNX2t8veVqOgmB40Z7hW1pFZI97dYLD0u13ENggySoLu77S35QQ0PlHwd\nj0uW7jsrbFG/ca936g3gl1l1BLQmlpDn2xdo+962XY0okXqzlmrhlK54pqSYWPU5\nDINbawXEZz+0gP6vYTjwmNWVB9l+b1S2bG/5A+JNkodHcaeu6SYJFk0hWkcIma9r\noovpy55ITZ1tSfwB9MBgxNES1w0JKjvCo8mQ4o2UIScQrOaCEiJmXHv21rzEkcRv\nbzkAgNGq5ddyExNOhj/7WSM0hA4/gUnPbM+RBOWilw0tZpH0pZRP3pI+OjYHSoAO\ncocCAwEAAaNgMF4wHwYDVR0jBBgwFoAUaOY6JQ0TnPAzOU3CCl9+dsP8jyMwHQYD\nVR0OBBYEFLuvHfWKCJABQr0kX3C7XogtZbhzMAwGA1UdEwEB/wQCMAAwDgYDVR0P\nAQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQCCpYf4gHfvrSiPARYpB7jajMhi\ngKf0nwBqnnAT7BVtyFVCHcJTP2KXs8aIs5el7yAQAMtzbP0e6EV5B/tpG3kfAfog\nMEWxFpleUfYtn0Eo72el8nRF0E/16rWANUu68jTywcEexMgKsOmEW546IktPtegR\nNDvS+U22FHkJAjzpPeQ9VxGF3nKM7eEvrTRDmiXP+/lXg67IFS4X+1WOtdAmYtos\nL+3TrTmTnUYrcZxQygsGaGCCAF415XXdHi0wIG5TqdTG/iO03kcXBh5Tsj4iXysV\nsZsRn312KHTgCg6HNynfZreRey7ipRvsG+7EFUneR16DIWsVkdkAtiIndyTN\n-----END CERTIFICATE-----\n","privateKey":"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAywB3NPQzEdnJUkbWrfpcQjtdrYE1fa3y95Wo6CYHjRnuFbWk\nVkj3t1gsPS7XcQ2CDJKgu7vtLflBDQ+UfB2PS5buOytsUb9xr3fqDeCXWXUEtCaW\nkOfbF2j73rZdjSiRerOWauGUrnimpJhY9TkMg1trBcRnP7SA/q9hOPCY1ZUH2X5v\nVLZsb/kD4k2Sh0dxp67pJgkWTSFaRwiZr2uii+nLnkhNnW1J/AH0wGDE0RLXDQkq\nO8KjyZDijZQhJxCs5oISImZce/bWvMSRxG9vOQCA0arl13ITE06GP/tZIzSEDj+B\nSc9sz5EE5aKXDS1mkfSllE/ekj46NgdKgA5yhwIDAQABAoIBAQDGCiNBTsaPsJad\npKwEuEzO9Fl0TawgetWgQamxKICPX++L0FONNcwsWmF2Ir9c9B+eImGaJEDDa/nR\nQxTJbJEB3jF1GeynZ4wB8YstlKAyTl2TXl3e6cIseWfWIrTrY9thB9hDVuSUvPFd\ne561RL13XHTxAGT1miOJ0xCW2ulO2kLQ8H/RpuvkUDF/5vkl2NxITjfylpx1RyH3\neQd2V8+/uDaJuaY2h7T00uTcSTV5T17d+nN9iIqd/dgmlfdrV29sQLnS1kf/Z+Pv\nwgKK+atBVMMNwfTRj6DI7QE/3SyUVl2srw94aDMX7YVXPRxmb9DCBeCbriNI1fL5\nSh/KuDvBAoGBAO1eHJFkt9ceOhWYQK0xu1uQzNU2D9sDXp/vHTGoPRDDcla8FwqB\nRH54jzYcbCBtiuC3s5kUrJ38M1ubbbYRQuoGf2OUUHkXrVUV5sV3dZuZXj42XU1H\nKudFoTNoaw6dwCDe8aicDkkxiZPDRrS8IHUbYosofVu4I6OyF2ETuRVhAoGBANrv\nxnZKps3PzzxywPqBH5l+gqbmQOJZqZXcJl3S/u3AFxwU5SpEnurARkv7uHIq7yqV\nwy0r06N+AspYOat6MsPG9uXH5lk/qph/FhHrYUI/d9Tgi57iSZqsfwYc1hebiIUU\nOcPwlnARAeQm6OSIXKOuSexiWoyodN1JSw9f1SjnAoGAbTi81HoPzcBu4bjpKciU\neZGrbwAtU429YMJaIJtVXf1RA3AQ+hh5N+ipnTB+4H0HRlfBIFNPCnMd/q0KUpim\nvaC3xU5dqRqn+1rUkVBioXJ01xOU4xY4O6rifhEyEcusuHNdp0QHns5Yi9FzG37l\nQH2VXosHA8k7PPuZnmXA6IECgYEAk13L13m+N1CGrKiNTtC1RWtLZC4eRH2X0cCC\nrqrEX6HprERAUKgp09eiOajw6SAPJjnySyhx5119YVfrUYoKO49kRxy75x0cplL8\ntwkZyS7RaR/Pux2T76HmSmYEkZVmWjVYAJSjnkFEZZ7vKkzDFoXNSmiVjJIjP4QD\nGxEleMcCgYA+a4AKy3oAFNmt1FtLvhwTZv2X56iXZtqyUH9EUCYby2SxO8QD0uCO\nAVhOXbI3oQUEgll1kdOC/Y10He7zb5H7oEk1WMn8SZjvdwKFPHkTSp5lzDWT1gGV\nMuNxtHiynRpNd/jsYyxlwywmKVYqq6UX4aeGToZRDoXF2BjlzLpQNg==\n-----END RSA PRIVATE KEY-----\n","certificateOwnershipToken":"eyJ2ZXJzaW9uIjoiMjAxOTEwMjMiLCJjaXBoZXIiOiJBbFZpUC9WbEVEY3lRRDBjWGlvNTluU2NtbWhUc0dmTDNHTjcwbFRMYWZ1Rkp0S3BwMDludHFJdkg2U2trWERraEM2TC9ONE1EenM4VHkwVFQ5Yk9CQU4rWURjbllsR3ljNmdKSDM5ek14SitlRlp3U0hIK3gyS1BVWjFWMm04anhWOVJka0RsRC82ZmNPUGUzSFEzTWhqOGNhQjZNUUJNZUVUbDlWYXBoVVJtYkh4Q1B6c2k5ZVlhdXM2M0pwZ3V0c2xrSk1zRkxTcHpWMGdLRnBuTlpwZExXYlYvUGIvazRMQTFCZ2ROd3R6L1Nld3FtanZ4QURpMXBTcVZiZHVvTHpoVm1lZEM1cERVZWdsa0Y1UEhXODIrMVZaTml2enhGdy8zSUIvNHVLVjVnekp4aGR4UUY0bz0ifQ=="}
+The above publication generates a response as follows:
 
-Sample response:
-
+```json
 {"deviceConfiguration":{},"thingName":"MAS-999999999"}
 
 Sample error response:
