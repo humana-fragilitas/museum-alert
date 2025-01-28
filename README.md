@@ -523,7 +523,7 @@ The above ```certificatePem```, ```PrivateKey``` and public ```Amazon AWS CA``` 
 
 Publish an empty payload on this topic: ```$aws/certificates/create/json```
 
-The above publication generates a json response as follows, containing the production certificates suitable for connecting the device and a 'certificateOwnershipToken' ti be specified as parameter in the next message publication:
+The above publication generates a json response as follows, containing the production certificates suitable for connecting the device and a 'certificateOwnershipToken' to be specified as parameter in the next message publication:
 
 ```json
 {"certificateId":"ea0fe4504c4fd6f65282b8b5 [...] ffb7e1bbb2ea2ad9a2ffe7ab2ba3a2a","certificatePem":"-----BEGIN CERTIFICATE-----\nMIIDWTCCAkGgAwIBAgIUMc8lVF9rfCCS [...] RvsG+7EFUneR16DIWsVkdkAtiIndyTN\n-----END CERTIFICATE-----\n","privateKey":"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQ [...] ZRDoXF2BjlzLpQNg==\n-----END RSA PRIVATE KEY-----\n","certificateOwnershipToken":"eyJ2ZXJzaW9uIjoiMjAxOTE [...] hXODIrMVZaTml2enhGdy8zSUIvNHVLVjVnekp4aGR4UUY0bz0ifQ=="}
